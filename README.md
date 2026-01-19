@@ -1,3 +1,6 @@
+[![crates.io](https://img.shields.io/crates/v/marc-rs.svg)](https://crates.io/crates/marc-rs)
+[![docs.rs](https://docs.rs/marc-rs/badge.svg)](https://docs.rs/marc-rs)
+
 # marc-rs
 
 A Rust library for parsing and writing MARC21, UNIMARC, and MARC XML bibliographic records.
