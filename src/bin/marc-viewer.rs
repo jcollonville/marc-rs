@@ -7,7 +7,7 @@ use std::path::Path;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
         eprintln!("Usage: {} <marc-file> [format] [encoding] [output-format]", args[0]);
         eprintln!("  format: marc21, unimarc, or xml (default: auto-detect)");
@@ -30,14 +30,9 @@ fn main() {
     }
 }
 
-fn view_marc_file(
-    file_path: &str,
-    format: Option<&str>,
-    encoding: Option<&str>,
-    output_format: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn view_marc_file(file_path: &str, format: Option<&str>, encoding: Option<&str>, output_format: &str) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(file_path);
-    
+
     if !path.exists() {
         return Err(format!("File not found: {}", file_path).into());
     }
@@ -83,36 +78,27 @@ fn view_marc_file(
             }
         }
         "json" => {
-            let json = serde_json::to_string(&records)
-                .map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
+            let json = serde_json::to_string(&records).map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
             println!("{}", json);
         }
         "json_pretty" => {
-            let json = serde_json::to_string_pretty(&records)
-                .map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
+            let json = serde_json::to_string_pretty(&records).map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
             println!("{}", json);
         }
         "xml" => {
             let xml_format = FormatEncoding::marc_xml();
-            let xml = serde_marc::to_string_many(&records, xml_format)
-                .map_err(|e| format!("Failed to serialize to XML: {}", e))?;
+            let xml = serde_marc::to_string_many(&records, xml_format).map_err(|e| format!("Failed to serialize to XML: {}", e))?;
             println!("{}", xml);
         }
         "marc" | "marc21" => {
             let marc_format = FormatEncoding::marc21_default();
-            let bytes = serde_marc::to_vec_many(&records, marc_format)
-                .map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
-            std::io::stdout()
-                .write_all(&bytes)
-                .map_err(|e| format!("Failed to write MARC21 output: {}", e))?;
+            let bytes = serde_marc::to_vec_many(&records, marc_format).map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
+            std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write MARC21 output: {}", e))?;
         }
         "unimarc" => {
             let unimarc_format = FormatEncoding::unimarc_default();
-            let bytes = serde_marc::to_vec_many(&records, unimarc_format)
-                .map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
-            std::io::stdout()
-                .write_all(&bytes)
-                .map_err(|e| format!("Failed to write UNIMARC output: {}", e))?;
+            let bytes = serde_marc::to_vec_many(&records, unimarc_format).map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
+            std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write UNIMARC output: {}", e))?;
         }
         _ => {
             return Err(format!("Unknown output format: {}. Use: plain, json, json_pretty, xml, marc, or unimarc", output_format).into());
@@ -122,10 +108,7 @@ fn view_marc_file(
     Ok(())
 }
 
-fn parse_format_encoding(
-    format: &str,
-    encoding: Option<&str>,
-) -> Result<FormatEncoding, String> {
+fn parse_format_encoding(format: &str, encoding: Option<&str>) -> Result<FormatEncoding, String> {
     let fmt = match format.to_lowercase().as_str() {
         "marc21" | "marc" => MarcFormat::Marc21,
         "unimarc" => MarcFormat::Unimarc,
@@ -160,10 +143,7 @@ fn parse_encoding(enc_str: &str) -> Result<Encoding, String> {
     }
 }
 
-fn detect_format_encoding(
-    buffer: &[u8],
-    encoding: Option<&str>,
-) -> Result<FormatEncoding, String> {
+fn detect_format_encoding(buffer: &[u8], encoding: Option<&str>) -> Result<FormatEncoding, String> {
     // Try to detect format
     let format = if buffer.starts_with(b"<?xml") || buffer.starts_with(b"<record") || buffer.starts_with(b"<collection") {
         MarcFormat::MarcXml

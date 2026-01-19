@@ -41,34 +41,34 @@ impl Subject {
             (Subject::SubjectCorporateName, _) => Some("610"),
             (Subject::SubjectMeetingName, _) => Some("611"),
             (Subject::SubjectUniformTitle, _) => Some("630"),
-            
+
             (Subject::SubjectTopicalTerm, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("650"),
             (Subject::SubjectTopicalTerm, MarcFormat::Unimarc) => Some("606"), // Topical name
-            
+
             (Subject::SubjectGeographicName, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("651"),
             (Subject::SubjectGeographicName, MarcFormat::Unimarc) => Some("607"), // Geographic name
-            
+
             (Subject::IndexTermUncontrolled, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("653"),
             (Subject::IndexTermUncontrolled, MarcFormat::Unimarc) => Some("610"), // Uncontrolled subject
-            
+
             (Subject::SubjectFacetedTopicalTerms, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("654"),
             (Subject::SubjectFacetedTopicalTerms, MarcFormat::Unimarc) => Some("606"), // Topical name
-            
+
             (Subject::IndexTermGenreForm, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("655"),
             (Subject::IndexTermGenreForm, MarcFormat::Unimarc) => Some("608"), // Form/genre
-            
+
             (Subject::IndexTermOccupation, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("656"),
             (Subject::IndexTermOccupation, MarcFormat::Unimarc) => Some("608"), // Form/genre
-            
+
             (Subject::IndexTermFunction, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("657"),
             (Subject::IndexTermFunction, MarcFormat::Unimarc) => Some("608"), // Form/genre
-            
+
             (Subject::IndexTermCurriculumObjective, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("658"),
             (Subject::IndexTermCurriculumObjective, MarcFormat::Unimarc) => None, // Not in UNIMARC
-            
+
             (Subject::SubjectHierarchicalPlaceName, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("662"),
             (Subject::SubjectHierarchicalPlaceName, MarcFormat::Unimarc) => Some("607"), // Geographic name
-            
+
             (Subject::SubjectTypeOfEntityUnspecified, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("688"),
             (Subject::SubjectTypeOfEntityUnspecified, MarcFormat::Unimarc) => None, // Not in UNIMARC
         }

@@ -19,13 +19,13 @@ impl MainEntry {
         match (self, format) {
             (MainEntry::PersonalName, MarcFormat::Marc21 | MarcFormat::MarcXml) => "100",
             (MainEntry::PersonalName, MarcFormat::Unimarc) => "700",
-            
+
             (MainEntry::CorporateName, MarcFormat::Marc21 | MarcFormat::MarcXml) => "110",
             (MainEntry::CorporateName, MarcFormat::Unimarc) => "710",
-            
+
             (MainEntry::MeetingName, MarcFormat::Marc21 | MarcFormat::MarcXml) => "111",
             (MainEntry::MeetingName, MarcFormat::Unimarc) => "711",
-            
+
             (MainEntry::UniformTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "130",
             (MainEntry::UniformTitle, MarcFormat::Unimarc) => "730",
         }

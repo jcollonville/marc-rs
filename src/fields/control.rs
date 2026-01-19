@@ -26,15 +26,15 @@ impl Control {
             (Control::ControlNumber, _) => Some("001"),
             (Control::ControlNumberIdentifier, _) => Some("003"),
             (Control::DateAndTimeOfLatestTransaction, _) => Some("005"),
-            
+
             (Control::FixedLengthDataElementsAdditional, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("006"),
             (Control::FixedLengthDataElementsAdditional, MarcFormat::Unimarc) => None, // Not in UNIMARC
-            
+
             (Control::PhysicalDescriptionFixedField, _) => Some("007"),
-            
+
             (Control::FixedLengthDataElements, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("008"),
             (Control::FixedLengthDataElements, MarcFormat::Unimarc) => Some("100"), // Coded data block
-            
+
             (Control::LocalControlNumber, MarcFormat::Marc21 | MarcFormat::MarcXml) => None, // Not standard
             (Control::LocalControlNumber, MarcFormat::Unimarc) => Some("009"),
         }

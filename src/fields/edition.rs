@@ -23,19 +23,19 @@ impl Edition {
         match (self, format) {
             (Edition::EditionStatement, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("250"),
             (Edition::EditionStatement, MarcFormat::Unimarc) => Some("205"),
-            
+
             (Edition::MusicalPresentationStatement, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("254"),
             (Edition::MusicalPresentationStatement, MarcFormat::Unimarc) => None, // Not in UNIMARC
-            
+
             (Edition::CartographicMathematicalData, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("255"),
             (Edition::CartographicMathematicalData, MarcFormat::Unimarc) => Some("206"),
-            
+
             (Edition::ComputerFileCharacteristics, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("256"),
             (Edition::ComputerFileCharacteristics, MarcFormat::Unimarc) => Some("336"),
-            
+
             (Edition::CountryOfProducingEntity, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("257"),
             (Edition::CountryOfProducingEntity, MarcFormat::Unimarc) => None, // Not in UNIMARC
-            
+
             (Edition::PhilatelicIssueData, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("258"),
             (Edition::PhilatelicIssueData, MarcFormat::Unimarc) => None, // Not in UNIMARC
         }

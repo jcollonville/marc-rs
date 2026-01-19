@@ -21,14 +21,14 @@ impl Series {
         match (self, format) {
             (Series::SeriesPersonalName, MarcFormat::Marc21 | MarcFormat::MarcXml) => "400",
             (Series::SeriesPersonalName, MarcFormat::Unimarc) => "410",
-            
+
             (Series::SeriesCorporateName, _) => "410",
-            
+
             (Series::SeriesMeetingName, _) => "411",
-            
+
             (Series::SeriesTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "440",
             (Series::SeriesTitle, MarcFormat::Unimarc) => "225",
-            
+
             (Series::SeriesStatement, MarcFormat::Marc21 | MarcFormat::MarcXml) => "490",
             (Series::SeriesStatement, MarcFormat::Unimarc) => "225",
         }

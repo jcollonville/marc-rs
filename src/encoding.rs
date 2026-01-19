@@ -1,19 +1,19 @@
-use encoding_rs::Encoding;
 use crate::format::Encoding as MarcEncoding;
+use encoding_rs::Encoding;
 
 /// Convert bytes from a specific encoding to UTF-8
 pub fn convert_to_utf8(data: &[u8], encoding: MarcEncoding) -> Result<String, String> {
     if encoding == MarcEncoding::Iso5426 {
         return decode_iso5426(data);
     }
-    
+
     let enc = get_encoding(encoding);
     let (cow, _, had_errors) = enc.decode(data);
-    
+
     if had_errors {
         return Err("Encoding conversion had errors".to_string());
     }
-    
+
     Ok(cow.to_string())
 }
 
@@ -22,14 +22,14 @@ pub fn convert_from_encoding(text: &str, encoding: MarcEncoding) -> Result<Vec<u
     if encoding == MarcEncoding::Iso5426 {
         return encode_iso5426(text);
     }
-    
+
     let enc = get_encoding(encoding);
     let (cow, _, had_errors) = enc.encode(text);
-    
+
     if had_errors {
         return Err("Encoding conversion had errors".to_string());
     }
-    
+
     Ok(cow.to_vec())
 }
 
@@ -60,7 +60,7 @@ fn get_encoding(encoding: MarcEncoding) -> &'static Encoding {
 /// Some special characters in the 0x80-0x9F range need special handling
 fn decode_iso5426(data: &[u8]) -> Result<String, String> {
     let mut result = String::with_capacity(data.len());
-    
+
     for &byte in data {
         match byte {
             // ASCII printable characters (0x20-0x7E) - same as ISO-8859-1
@@ -98,17 +98,17 @@ fn decode_iso5426(data: &[u8]) -> Result<String, String> {
             }
         }
     }
-    
+
     Ok(result)
 }
 
 /// Encode UTF-8 string to ISO-5426 bytes
 fn encode_iso5426(text: &str) -> Result<Vec<u8>, String> {
     let mut result = Vec::with_capacity(text.len());
-    
+
     for ch in text.chars() {
         let code_point = ch as u32;
-        
+
         match code_point {
             // ASCII printable (0x20-0x7E)
             0x20..=0x7E => {
@@ -138,7 +138,7 @@ fn encode_iso5426(text: &str) -> Result<Vec<u8>, String> {
             }
         }
     }
-    
+
     Ok(result)
 }
 

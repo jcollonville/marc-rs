@@ -62,7 +62,7 @@ impl Leader {
         let mut bytes = vec![0u8; 24];
         let record_length_str = format!("{:05}", self.record_length);
         let base_address_str = format!("{:05}", self.base_address_of_data);
-        
+
         bytes[0..5].copy_from_slice(record_length_str.as_bytes());
         bytes[5] = self.record_status as u8;
         bytes[6] = self.record_type as u8;
@@ -79,16 +79,14 @@ impl Leader {
         bytes[21] = b'0' + self.length_of_starting_character_position_portion;
         bytes[22] = b'0' + self.length_of_implementation_defined_portion;
         bytes[23] = self.undefined as u8;
-        
+
         bytes
     }
 }
 
 fn parse_u16(bytes: &[u8]) -> Result<u16, String> {
-    let s = std::str::from_utf8(bytes)
-        .map_err(|e| format!("Invalid UTF-8: {}", e))?;
-    s.parse::<u16>()
-        .map_err(|e| format!("Invalid number: {}", e))
+    let s = std::str::from_utf8(bytes).map_err(|e| format!("Invalid UTF-8: {}", e))?;
+    s.parse::<u16>().map_err(|e| format!("Invalid number: {}", e))
 }
 
 /// Control field (001-009)
@@ -183,10 +181,8 @@ impl<'de> serde::Deserialize<'de> for Record {
 
                 Ok(Record {
                     leader: leader.ok_or_else(|| de::Error::missing_field("leader"))?,
-                    control_fields: control_fields
-                        .ok_or_else(|| de::Error::missing_field("control_fields"))?,
-                    data_fields: data_fields
-                        .ok_or_else(|| de::Error::missing_field("data_fields"))?,
+                    control_fields: control_fields.ok_or_else(|| de::Error::missing_field("control_fields"))?,
+                    data_fields: data_fields.ok_or_else(|| de::Error::missing_field("data_fields"))?,
                 })
             }
         }
@@ -300,7 +296,8 @@ impl<'de> serde::Deserialize<'de> for Leader {
                     descriptive_cataloging_form: descriptive_cataloging_form.ok_or_else(|| de::Error::missing_field("descriptive_cataloging_form"))?,
                     multipart_resource_record_level: multipart_resource_record_level.ok_or_else(|| de::Error::missing_field("multipart_resource_record_level"))?,
                     length_of_length_of_field_portion: length_of_length_of_field_portion.ok_or_else(|| de::Error::missing_field("length_of_length_of_field_portion"))?,
-                    length_of_starting_character_position_portion: length_of_starting_character_position_portion.ok_or_else(|| de::Error::missing_field("length_of_starting_character_position_portion"))?,
+                    length_of_starting_character_position_portion: length_of_starting_character_position_portion
+                        .ok_or_else(|| de::Error::missing_field("length_of_starting_character_position_portion"))?,
                     length_of_implementation_defined_portion: length_of_implementation_defined_portion.ok_or_else(|| de::Error::missing_field("length_of_implementation_defined_portion"))?,
                     undefined: undefined.ok_or_else(|| de::Error::missing_field("undefined"))?,
                 })

@@ -21,16 +21,16 @@ impl Title {
         match (self, format) {
             (Title::TitleStatement, MarcFormat::Marc21 | MarcFormat::MarcXml) => "245", // XML follows MARC21 structure
             (Title::TitleStatement, MarcFormat::Unimarc) => "200",
-            
+
             (Title::VaryingFormOfTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246",
             (Title::VaryingFormOfTitle, MarcFormat::Unimarc) => "517",
-            
+
             (Title::FormerTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "247",
             (Title::FormerTitle, MarcFormat::Unimarc) => "520",
-            
+
             (Title::ParallelTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246", // Used with specific indicators
             (Title::ParallelTitle, MarcFormat::Unimarc) => "510",
-            
+
             (Title::OtherTitleInformation, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246", // Used with specific indicators
             (Title::OtherTitleInformation, MarcFormat::Unimarc) => "517",
         }

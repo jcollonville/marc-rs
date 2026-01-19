@@ -38,11 +38,7 @@ impl From<quick_xml::Error> for WriteError {
 }
 
 /// Write MARC records to output
-pub fn write(
-    records: &[Record],
-    format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+pub fn write(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     match format_encoding.format {
         MarcFormat::Marc21 => write_marc21_binary(records, format_encoding, output),
         MarcFormat::Unimarc => write_unimarc_binary(records, format_encoding, output),
@@ -51,20 +47,12 @@ pub fn write(
 }
 
 /// Write a single record (convenience function)
-pub fn write_one(
-    record: &Record,
-    format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+pub fn write_one(record: &Record, format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     write(&[record.clone()], format_encoding, output)
 }
 
 /// Write MARC21 binary format
-pub fn write_marc21_binary(
-    records: &[Record],
-    format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+pub fn write_marc21_binary(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     for record in records {
         write_single_marc21_binary(record, format_encoding, output)?;
     }
@@ -72,19 +60,14 @@ pub fn write_marc21_binary(
 }
 
 /// Write a single MARC21 binary record
-fn write_single_marc21_binary(
-    record: &Record,
-    format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+fn write_single_marc21_binary(record: &Record, format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     // Calculate base address (24 bytes leader + directory)
     let mut directory_entries = Vec::new();
     let mut data_area = Vec::new();
 
     // Write control fields
     for field in &record.control_fields {
-        let value_bytes = convert_from_encoding(&field.value, format_encoding.encoding)
-            .map_err(|e| WriteError::InvalidEncoding(e))?;
+        let value_bytes = convert_from_encoding(&field.value, format_encoding.encoding).map_err(|e| WriteError::InvalidEncoding(e))?;
         let start = data_area.len();
         data_area.extend_from_slice(&value_bytes);
         data_area.push(0x1E); // Field terminator
@@ -98,11 +81,10 @@ fn write_single_marc21_binary(
         field_data.push(field.ind1 as u8);
         field_data.push(field.ind2 as u8);
 
-            for subfield in &field.subfields {
-                field_data.push(0x1F); // Subfield delimiter
-                field_data.push(subfield.code as u8);
-            let value_bytes = convert_from_encoding(&subfield.value, format_encoding.encoding)
-                .map_err(|e| WriteError::InvalidEncoding(e))?;
+        for subfield in &field.subfields {
+            field_data.push(0x1F); // Subfield delimiter
+            field_data.push(subfield.code as u8);
+            let value_bytes = convert_from_encoding(&subfield.value, format_encoding.encoding).map_err(|e| WriteError::InvalidEncoding(e))?;
             field_data.extend_from_slice(&value_bytes);
         }
 
@@ -121,10 +103,7 @@ fn write_single_marc21_binary(
     for (tag, start, length) in &directory_entries {
         let tag_bytes = tag.as_bytes();
         if tag_bytes.len() != 3 {
-            return Err(WriteError::InvalidRecord(format!(
-                "Invalid tag length: {}",
-                tag
-            )));
+            return Err(WriteError::InvalidRecord(format!("Invalid tag length: {}", tag)));
         }
         directory.extend_from_slice(tag_bytes);
         directory.extend_from_slice(format!("{:04}{:05}", length, start).as_bytes());
@@ -152,21 +131,13 @@ fn write_single_marc21_binary(
 }
 
 /// Write UNIMARC binary format
-pub fn write_unimarc_binary(
-    records: &[Record],
-    format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+pub fn write_unimarc_binary(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     // UNIMARC uses the same binary structure as MARC21
     write_marc21_binary(records, format_encoding, output)
 }
 
 /// Write MARC XML format
-pub fn write_marc_xml(
-    records: &[Record],
-    _format_encoding: FormatEncoding,
-    output: &mut dyn Write,
-) -> Result<(), WriteError> {
+pub fn write_marc_xml(records: &[Record], _format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
     use quick_xml::events::{BytesEnd, BytesStart, Event};
     use quick_xml::Writer;
 
@@ -190,8 +161,7 @@ pub fn write_marc_xml(
 
         // Write leader
         let leader_bytes = record.leader.to_bytes();
-        let leader_str = std::str::from_utf8(&leader_bytes)
-            .map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
+        let leader_str = std::str::from_utf8(&leader_bytes).map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
         let leader_start = BytesStart::new("leader");
         writer.write_event(Event::Start(leader_start))?;
         writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(leader_str)))?;
@@ -202,9 +172,7 @@ pub fn write_marc_xml(
             let mut field_start = BytesStart::new("controlfield");
             field_start.push_attribute(("tag", field.tag.as_str()));
             writer.write_event(Event::Start(field_start.clone()))?;
-            writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
-                &field.value,
-            )))?;
+            writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(&field.value)))?;
             writer.write_event(Event::End(BytesEnd::new("controlfield")))?;
         }
 
@@ -220,9 +188,7 @@ pub fn write_marc_xml(
                 let mut subfield_start = BytesStart::new("subfield");
                 subfield_start.push_attribute(("code", subfield.code.to_string().as_str()));
                 writer.write_event(Event::Start(subfield_start.clone()))?;
-                writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
-                    &subfield.value,
-                )))?;
+                writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(&subfield.value)))?;
                 writer.write_event(Event::End(BytesEnd::new("subfield")))?;
             }
 

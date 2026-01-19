@@ -13,10 +13,7 @@ use std::io::{Read, Write};
 /// Deserialize a single MARC record from a byte slice
 pub fn from_slice(data: &[u8], format_encoding: FormatEncoding) -> Result<Record, ParseError> {
     let records = parse(data, format_encoding)?;
-    records
-        .into_iter()
-        .next()
-        .ok_or_else(|| ParseError::Other("No record found in data".to_string()))
+    records.into_iter().next().ok_or_else(|| ParseError::Other("No record found in data".to_string()))
 }
 
 #[cfg(feature = "serde")]
@@ -41,9 +38,7 @@ pub fn from_str_many(data: &str, format_encoding: FormatEncoding) -> Result<Vec<
 /// Deserialize a single MARC record from a reader
 pub fn from_reader<R: Read>(mut reader: R, format_encoding: FormatEncoding) -> Result<Record, ParseError> {
     let mut buffer = Vec::new();
-    reader
-        .read_to_end(&mut buffer)
-        .map_err(|e| ParseError::Other(format!("IO error: {}", e)))?;
+    reader.read_to_end(&mut buffer).map_err(|e| ParseError::Other(format!("IO error: {}", e)))?;
     from_slice(&buffer, format_encoding)
 }
 
@@ -51,9 +46,7 @@ pub fn from_reader<R: Read>(mut reader: R, format_encoding: FormatEncoding) -> R
 /// Deserialize MARC records from a reader
 pub fn from_reader_many<R: Read>(mut reader: R, format_encoding: FormatEncoding) -> Result<Vec<Record>, ParseError> {
     let mut buffer = Vec::new();
-    reader
-        .read_to_end(&mut buffer)
-        .map_err(|e| ParseError::Other(format!("IO error: {}", e)))?;
+    reader.read_to_end(&mut buffer).map_err(|e| ParseError::Other(format!("IO error: {}", e)))?;
     from_slice_many(&buffer, format_encoding)
 }
 
@@ -89,16 +82,14 @@ pub fn to_vec_many(records: &[Record], format_encoding: FormatEncoding) -> Resul
 /// Serialize a single MARC record to a string (for XML format)
 pub fn to_string(record: &Record, format_encoding: FormatEncoding) -> Result<String, WriteError> {
     let bytes = to_vec(record, format_encoding)?;
-    String::from_utf8(bytes)
-        .map_err(|e| WriteError::Other(format!("Invalid UTF-8: {}", e)))
+    String::from_utf8(bytes).map_err(|e| WriteError::Other(format!("Invalid UTF-8: {}", e)))
 }
 
 #[cfg(feature = "serde")]
 /// Serialize multiple MARC records to a string (for XML format)
 pub fn to_string_many(records: &[Record], format_encoding: FormatEncoding) -> Result<String, WriteError> {
     let bytes = to_vec_many(records, format_encoding)?;
-    String::from_utf8(bytes)
-        .map_err(|e| WriteError::Other(format!("Invalid UTF-8: {}", e)))
+    String::from_utf8(bytes).map_err(|e| WriteError::Other(format!("Invalid UTF-8: {}", e)))
 }
 
 #[cfg(feature = "serde")]

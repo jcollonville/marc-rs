@@ -98,7 +98,7 @@ fn test_leader_to_from_bytes() {
 #[test]
 fn test_field_enums() {
     use marc_rs::MarcFormat;
-    
+
     // Test MARC21 tags
     assert_eq!(MainEntry::PersonalName.tag(MarcFormat::Marc21), "100");
     assert_eq!(Title::TitleStatement.tag(MarcFormat::Marc21), "245");
@@ -110,7 +110,7 @@ fn test_field_enums() {
     assert_eq!(AddedEntry::PersonalName.tag(MarcFormat::Marc21), "700");
     assert_eq!(Linking::MainSeriesEntry.tag(MarcFormat::Marc21), Some("760"));
     assert_eq!(Control::ControlNumber.tag(MarcFormat::Marc21), Some("001"));
-    
+
     // Test UNIMARC tags
     assert_eq!(MainEntry::PersonalName.tag(MarcFormat::Unimarc), "700");
     assert_eq!(Title::TitleStatement.tag(MarcFormat::Unimarc), "200");

@@ -163,7 +163,7 @@ impl Note {
             Note::AwardsNote => "586",
             Note::SourceOfDescriptionNote => "588",
         };
-        
+
         // Most notes are the same in both formats
         // Some specific mappings could be added here if needed
         match format {
