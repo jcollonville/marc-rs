@@ -1,0 +1,32 @@
+[package]
+name = "marc-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "Rust library for MARC21, UNIMARC, and MARC XML format support"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/marc-rs"
+keywords = ["marc", "marc21", "unimarc", "bibliographic", "library"]
+categories = ["encoding", "parsing"]
+
+[dependencies]
+# Parsing XML
+quick-xml = { version = "0.31", features = ["serialize"] }
+
+# Encodage
+encoding_rs = "0.8"
+
+# Serde (optionnel)
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
+
+[[bin]]
+name = "marc-viewer"
+path = "src/bin/marc-viewer.rs"
+required-features = ["serde"]
+
+[dev-dependencies]
