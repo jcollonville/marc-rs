@@ -2,10 +2,10 @@
 name = "marc-rs"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <you@example.com>"]
+authors = ["Jean Collonvillé <jcollonville@b-612.fr>"]
 description = "Rust library for MARC21, UNIMARC, and MARC XML format support"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/marc-rs"
+repository = "https://github.com/jcollonville/marc-rs"
 keywords = ["marc", "marc21", "unimarc", "bibliographic", "library"]
 categories = ["encoding", "parsing"]
 
