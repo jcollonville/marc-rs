@@ -1,5 +1,4 @@
 use marc_rs::*;
-use serde_json;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -12,7 +11,7 @@ fn main() {
         eprintln!("Usage: {} <marc-file> [format] [encoding] [output-format]", args[0]);
         eprintln!("  format: marc21, unimarc, or xml (default: auto-detect)");
         eprintln!("  encoding: utf8, marc8, iso8859-1, etc. (default: auto-detect)");
-        eprintln!("  output-format: plain, json, json_pretty, xml, marc, or unimarc (default: plain)");
+        eprintln!("  output-format: plain, marc-xml, marc, or unimarc (default: plain)");
         std::process::exit(1);
     }
 
@@ -77,31 +76,24 @@ fn view_marc_file(file_path: &str, format: Option<&str>, encoding: Option<&str>,
                 }
             }
         }
-        "json" => {
-            let json = serde_json::to_string(&records).map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
-            println!("{}", json);
-        }
-        "json_pretty" => {
-            let json = serde_json::to_string_pretty(&records).map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
-            println!("{}", json);
-        }
-        "xml" => {
+
+        "marc-xml" => {
             let xml_format = FormatEncoding::marc_xml();
-            let xml = serde_marc::to_string_many(&records, xml_format).map_err(|e| format!("Failed to serialize to XML: {}", e))?;
+            let xml = helpers::to_string_many(&records, xml_format).map_err(|e| format!("Failed to serialize to XML: {}", e))?;
             println!("{}", xml);
         }
         "marc" | "marc21" => {
             let marc_format = FormatEncoding::marc21_default();
-            let bytes = serde_marc::to_vec_many(&records, marc_format).map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
+            let bytes = helpers::to_vec_many(&records, marc_format).map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
             std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write MARC21 output: {}", e))?;
         }
         "unimarc" => {
             let unimarc_format = FormatEncoding::unimarc_default();
-            let bytes = serde_marc::to_vec_many(&records, unimarc_format).map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
+            let bytes = helpers::to_vec_many(&records, unimarc_format).map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
             std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write UNIMARC output: {}", e))?;
         }
         _ => {
-            return Err(format!("Unknown output format: {}. Use: plain, json, json_pretty, xml, marc, or unimarc", output_format).into());
+            return Err(format!("Unknown output format: {}. Use: plain, marc-xml, marc, or unimarc", output_format).into());
         }
     }
 

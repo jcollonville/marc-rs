@@ -79,10 +79,7 @@ pub mod format;
 pub mod parser;
 pub mod record;
 pub mod writer;
-
-#[cfg(feature = "serde")]
-pub mod serde_marc;
-
+pub mod helpers;
 pub use encoding::*;
 pub use fields::*;
 pub use format::*;
