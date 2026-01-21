@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 /// MARC format types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarcFormat {
@@ -16,6 +18,16 @@ impl From<&str> for MarcFormat {
             "unimarc" => MarcFormat::Unimarc,
             "xml" => MarcFormat::MarcXml,
             _ => MarcFormat::Marc21,
+        }
+    }
+}
+
+impl Display for MarcFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MarcFormat::Marc21 => write!(f, "marc21"),
+            MarcFormat::Unimarc => write!(f, "unimarc"),
+            MarcFormat::MarcXml => write!(f, "xml"),
         }
     }
 }
@@ -53,6 +65,21 @@ impl From<&str> for Encoding {
             "iso8859-15" | "latin9" | "latin-9" => Encoding::Iso8859_15,
             "iso5426" | "iso-5426" => Encoding::Iso5426,
             _ => Encoding::Utf8,
+        }
+    }
+}
+
+impl Display for Encoding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Encoding::Utf8 => write!(f, "utf8"),
+            Encoding::Marc8 => write!(f, "marc8"),
+            Encoding::Iso8859_1 => write!(f, "iso8859-1"),
+            Encoding::Iso8859_2 => write!(f, "iso8859-2"),
+            Encoding::Iso8859_5 => write!(f, "iso8859-5"),
+            Encoding::Iso8859_7 => write!(f, "iso8859-7"),
+            Encoding::Iso8859_15 => write!(f, "iso8859-15"),
+            Encoding::Iso5426 => write!(f, "iso5426"),
         }
     }
 }
