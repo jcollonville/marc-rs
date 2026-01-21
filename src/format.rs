@@ -9,6 +9,17 @@ pub enum MarcFormat {
     MarcXml,
 }
 
+impl From<&str> for MarcFormat {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "marc21" | "marc" => MarcFormat::Marc21,
+            "unimarc" => MarcFormat::Unimarc,
+            "xml" => MarcFormat::MarcXml,
+            _ => MarcFormat::Marc21,
+        }
+    }
+}
+
 /// Character encodings supported by MARC formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Encoding {
@@ -28,6 +39,22 @@ pub enum Encoding {
     Iso8859_15,
     /// ISO 5426 (Extension of the Latin alphabet for bibliographic information interchange)
     Iso5426,
+}
+
+impl From<&str> for Encoding {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "utf8" | "utf-8" => Encoding::Utf8,
+            "marc8" | "marc-8" => Encoding::Marc8,
+            "iso8859-1" | "latin1" | "latin-1" => Encoding::Iso8859_1,
+            "iso8859-2" | "latin2" | "latin-2" => Encoding::Iso8859_2,
+            "iso8859-5" => Encoding::Iso8859_5,
+            "iso8859-7" => Encoding::Iso8859_7,
+            "iso8859-15" | "latin9" | "latin-9" => Encoding::Iso8859_15,
+            "iso5426" | "iso-5426" => Encoding::Iso5426,
+            _ => Encoding::Utf8,
+        }
+    }
 }
 
 /// Combination of format and encoding
@@ -67,3 +94,5 @@ impl FormatEncoding {
         }
     }
 }
+
+
