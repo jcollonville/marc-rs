@@ -1,6 +1,7 @@
 use crate::encoding::{convert_to_utf8, convert_to_utf8_heuristic};
 use crate::fields::{
-    AddedEntry, Control, Edition, Linking, MainEntry, Note, Physical, Series, Subject, Title,
+    AddedEntry, Control, Edition, Linking, MainEntry, Note, Physical, Series, Specimen, Subject,
+    Title,
 };
 use crate::format::{Encoding, FormatEncoding, MarcFormat};
 use crate::record::{ControlField, DataField, Leader, Record, Subfield};
@@ -227,6 +228,10 @@ fn dispatch_data_field(
     }
     if let Some(li) = Linking::try_parse(tag, ind1, ind2, subfields, format) {
         record.linking.push(li);
+        return;
+    }
+    if let Some(sp) = Specimen::try_parse(tag, ind1, ind2, subfields, format) {
+        record.specimens.push(sp);
         return;
     }
 

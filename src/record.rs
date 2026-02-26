@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::fields::{
-    AddedEntry, Control, Edition, Linking, MainEntry, Note, Physical, Series, Subject, Title,
+    AddedEntry, Control, Edition, Linking, MainEntry, Note, Physical, Series, Specimen, Subject,
+    Title,
 };
 
 /// MARC record structure with typed fields
@@ -18,6 +19,8 @@ pub struct Record {
     pub subjects: Vec<Subject>,
     pub added_entries: Vec<AddedEntry>,
     pub linking: Vec<Linking>,
+    /// Item copies (995 French norm, 952 Koha) — one element per field
+    pub specimens: Vec<Specimen>,
     /// Control fields (tag < 010) not mapped to a typed variant
     pub other_control: Vec<ControlField>,
     /// Data fields (tag >= 010) not mapped to a typed variant
@@ -38,6 +41,7 @@ impl Record {
             subjects: Vec::new(),
             added_entries: Vec::new(),
             linking: Vec::new(),
+            specimens: Vec::new(),
             other_control: Vec::new(),
             other_data: Vec::new(),
         }

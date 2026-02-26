@@ -122,6 +122,9 @@ pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlFi
             data_fields.push(df);
         }
     }
+    for sp in &record.specimens {
+        data_fields.push(sp.to_raw(format));
+    }
     // Other data fields
     data_fields.extend(record.other_data.clone());
 

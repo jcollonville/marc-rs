@@ -7,6 +7,7 @@ pub mod main_entry;
 pub mod note;
 pub mod physical;
 pub mod series;
+pub mod specimen;
 pub mod subject;
 pub mod title;
 
@@ -19,5 +20,6 @@ pub use main_entry::*;
 pub use note::*;
 pub use physical::*;
 pub use series::*;
+pub use specimen::*;
 pub use subject::*;
 pub use title::*;
