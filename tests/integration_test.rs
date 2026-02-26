@@ -46,10 +46,8 @@ fn test_record_creation() {
     };
 
     let mut record = Record::new(leader);
-    record
-        .control
-        .push(Control::ControlNumber("12345".to_string()));
-    record.titles.push(Title::TitleStatement(TitleStatementData {
+    record.push_control(Control::ControlNumber("12345".to_string()));
+    record.push_title(Title::TitleStatement(TitleStatementData {
         ind1: '1',
         ind2: '0',
         title: "Test title".to_string(),
@@ -61,8 +59,8 @@ fn test_record_creation() {
         other_subfields: vec![],
     }));
 
-    assert_eq!(record.control.len(), 1);
-    assert_eq!(record.titles.len(), 1);
+    assert_eq!(record.control().len(), 1);
+    assert_eq!(record.titles().len(), 1);
 }
 
 #[test]

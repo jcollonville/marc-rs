@@ -30,9 +30,7 @@ fn test_helpers_to_vec() {
     };
 
     let mut record = Record::new(leader);
-    record
-        .control
-        .push(Control::ControlNumber("12345".to_string()));
+    record.push_control(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
     let result = helpers::to_vec(&record, format);
@@ -63,9 +61,7 @@ fn test_helpers_to_string_xml() {
     };
 
     let mut record = Record::new(leader);
-    record
-        .control
-        .push(Control::ControlNumber("12345".to_string()));
+    record.push_control(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::marc_xml();
     let result = helpers::to_string(&record, format);
@@ -87,8 +83,8 @@ fn test_helpers_from_str_xml() {
     let result = helpers::from_str(xml, format);
     assert!(result.is_ok());
     let record = result.unwrap();
-    assert_eq!(record.control.len(), 1);
-    match &record.control[0] {
+    assert_eq!(record.control().len(), 1);
+    match &record.control()[0] {
         Control::ControlNumber(v) => assert_eq!(v, "12345"),
         _ => panic!("Expected ControlNumber"),
     }
@@ -116,9 +112,7 @@ fn test_helpers_to_writer() {
     };
 
     let mut record = Record::new(leader);
-    record
-        .control
-        .push(Control::ControlNumber("12345".to_string()));
+    record.push_control(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
     let mut buffer = Vec::new();
@@ -149,11 +143,9 @@ fn test_helpers_to_records() {
     };
 
     let mut r1 = Record::new(leader.clone());
-    r1.control
-        .push(Control::ControlNumber("12345".to_string()));
+    r1.push_control(Control::ControlNumber("12345".to_string()));
     let mut r2 = Record::new(leader);
-    r2.control
-        .push(Control::ControlNumber("67890".to_string()));
+    r2.push_control(Control::ControlNumber("67890".to_string()));
     let records = vec![r1, r2];
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
@@ -185,13 +177,9 @@ fn test_json_round_trip() {
     };
 
     let mut record = Record::new(leader);
-    record
-        .control
-        .push(Control::ControlNumber("ocm12345".to_string()));
-    record
-        .control
-        .push(Control::FixedLengthDataElements("some-fixed-data".to_string()));
-    record.titles.push(Title::TitleStatement(
+    record.push_control(Control::ControlNumber("ocm12345".to_string()));
+    record.push_control(Control::FixedLengthDataElements("some-fixed-data".to_string()));
+    record.push_title(Title::TitleStatement(
         marc_rs::fields::title::TitleStatementData {
             ind1: '0',
             ind2: '4',
@@ -204,7 +192,7 @@ fn test_json_round_trip() {
             other_subfields: vec![],
         },
     ));
-    record.main_entries.push(MainEntry::PersonalName(
+    record.push_main_entry(MainEntry::PersonalName(
         marc_rs::fields::common::PersonalNameData {
             ind1: '1',
             ind2: ' ',
@@ -218,7 +206,7 @@ fn test_json_round_trip() {
             other_subfields: vec![],
         },
     ));
-    record.subjects.push(Subject::SubjectTopicalTerm(
+    record.push_subject(Subject::SubjectTopicalTerm(
         marc_rs::fields::common::SubjectData {
             ind1: ' ',
             ind2: '0',
@@ -231,7 +219,7 @@ fn test_json_round_trip() {
             other_subfields: vec![('x', "Handbooks, manuals, etc.".to_string())],
         },
     ));
-    record.other_data.push(DataField {
+    record.push_other_data(DataField {
         tag: "999".to_string(),
         ind1: ' ',
         ind2: ' ',

@@ -78,55 +78,64 @@ pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlFi
     let mut data_fields = Vec::new();
 
     // Typed control fields
-    for c in &record.control {
+    for c in record.control() {
         if let Some(cf) = c.to_raw(format) {
             control_fields.push(cf);
         }
     }
     // Other control fields
-    control_fields.extend(record.other_control.clone());
+    control_fields.extend(record.other_control().to_vec());
 
     // Typed data fields
-    for t in &record.titles {
+    for isbn in record.isbns() {
+        data_fields.push(isbn.to_raw(format));
+    }
+    for t in record.titles() {
         data_fields.push(t.to_raw(format));
     }
-    for me in &record.main_entries {
+    for me in record.main_entries() {
         data_fields.push(me.to_raw(format));
     }
-    for ed in &record.editions {
+    for ed in record.editions() {
         if let Some(df) = ed.to_raw(format) {
             data_fields.push(df);
         }
     }
-    for ph in &record.physical {
+    for ph in record.physical() {
         if let Some(df) = ph.to_raw(format) {
             data_fields.push(df);
         }
     }
-    for se in &record.series {
+    for se in record.series() {
         data_fields.push(se.to_raw(format));
     }
-    for no in &record.notes {
+    for no in record.notes() {
         data_fields.push(no.to_raw(format));
     }
-    for su in &record.subjects {
+    for su in record.subjects() {
         if let Some(df) = su.to_raw(format) {
             data_fields.push(df);
         }
     }
-    for ae in &record.added_entries {
+    for ae in record.added_entries() {
         data_fields.push(ae.to_raw(format));
     }
-    for li in &record.linking {
+    for li in record.linking() {
         if let Some(df) = li.to_raw(format) {
             data_fields.push(df);
         }
     }
-    for sp in &record.specimens {
+    for sp in record.specimens() {
         data_fields.push(sp.to_raw(format));
     }
+    for dc in record.classifications() {
+        data_fields.push(dc.to_raw(format));
+    }
+    for lang in record.languages() {
+        data_fields.push(lang.to_raw(format));
+    }
     // Other data fields
-    data_fields.extend(record.other_data.clone());
+    data_fields.extend(record.other_data().to_vec());
 
     // Sort for canonical order
     control_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
@@ -191,7 +200,7 @@ fn write_single_marc21_binary(
     }
 
     let base_address = 24 + directory.len();
-    let mut leader = record.leader.clone();
+    let mut leader = record.leader().clone();
     leader.base_address_of_data = base_address as u16;
     leader.record_length = (base_address + data_area.len()) as u16;
 
@@ -244,7 +253,7 @@ pub fn write_marc_xml(
         writer.write_event(Event::Start(record_start))?;
 
         // Leader
-        let leader_bytes = record.leader.to_bytes();
+        let leader_bytes = record.leader().to_bytes();
         let leader_str = std::str::from_utf8(&leader_bytes)
             .map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
         let leader_start = BytesStart::new("leader");

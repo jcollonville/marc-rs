@@ -122,42 +122,43 @@ fn detect_format_encoding(buffer: &[u8]) -> Result<FormatEncoding, String> {
 }
 
 fn display_record(record: &Record, format: MarcFormat) {
+    let leader = record.leader();
     println!("LEADER");
-    println!("  Record Length: {}", record.leader.record_length);
-    println!("  Status: {}", record.leader.record_status);
-    println!("  Type: {}", record.leader.record_type);
+    println!("  Record Length: {}", leader.record_length);
+    println!("  Status: {}", leader.record_status);
+    println!("  Type: {}", leader.record_type);
     println!(
         "  Bibliographic Level: {}",
-        record.leader.bibliographic_level
+        leader.bibliographic_level
     );
-    println!("  Type of Control: {}", record.leader.type_of_control);
+    println!("  Type of Control: {}", leader.type_of_control);
     println!(
         "  Character Coding Scheme: {}",
-        record.leader.character_coding_scheme
+        leader.character_coding_scheme
     );
-    println!("  Indicator Count: {}", record.leader.indicator_count);
+    println!("  Indicator Count: {}", leader.indicator_count);
     println!(
         "  Subfield Code Count: {}",
-        record.leader.subfield_code_count
+        leader.subfield_code_count
     );
-    println!("  Base Address: {}", record.leader.base_address_of_data);
-    println!("  Encoding Level: {}", record.leader.encoding_level);
+    println!("  Base Address: {}", leader.base_address_of_data);
+    println!("  Encoding Level: {}", leader.encoding_level);
     println!(
         "  Descriptive Cataloging Form: {}",
-        record.leader.descriptive_cataloging_form
+        leader.descriptive_cataloging_form
     );
     println!();
 
     // Control fields
-    let has_control = !record.control.is_empty() || !record.other_control.is_empty();
+    let has_control = !record.control().is_empty() || !record.other_control().is_empty();
     if has_control {
         println!("CONTROL FIELDS");
-        for c in &record.control {
+        for c in record.control() {
             if let Some(tag) = c.tag(format) {
                 println!("  {}: {}", tag, c.value());
             }
         }
-        for c in &record.other_control {
+        for c in record.other_control() {
             println!("  {}: {}", c.tag, c.value);
         }
         println!();

@@ -35,11 +35,90 @@ impl EditionStatementData {
     }
 }
 
+/// Publication/imprint: place, publisher, date.
+/// MARC21: 260 or 264 ($a place, $b publisher, $c date). UNIMARC: 210 ($a place, $c publisher, $d date).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PublicationData {
+    /// Original tag: "260", "264" (MARC21) or "210" (UNIMARC).
+    pub tag: String,
+    pub ind1: char,
+    pub ind2: char,
+    pub places: Vec<String>,
+    pub publishers: Vec<String>,
+    pub dates: Vec<String>,
+    pub other_subfields: Vec<(char, String)>,
+}
+
+impl PublicationData {
+    /// First place, or None.
+    pub fn place(&self) -> Option<&str> {
+        self.places.first().map(String::as_str)
+    }
+    /// First publisher, or None.
+    pub fn publisher(&self) -> Option<&str> {
+        self.publishers.first().map(String::as_str)
+    }
+    /// First date, or None.
+    pub fn date(&self) -> Option<&str> {
+        self.dates.first().map(String::as_str)
+    }
+
+    fn from_subfields_260_264(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
+        const KNOWN: [char; 3] = ['a', 'b', 'c'];
+        let places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'a').map(|(_, v)| v.clone()).collect();
+        let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'b').map(|(_, v)| v.clone()).collect();
+        let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
+        let other_subfields = get_remaining_subfields(subfields, &KNOWN);
+        Self { tag: String::new(), ind1, ind2, places, publishers, dates, other_subfields }
+    }
+
+    fn from_subfields_210(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
+        const KNOWN: [char; 3] = ['a', 'c', 'd'];
+        let places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'a').map(|(_, v)| v.clone()).collect();
+        let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
+        let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'd').map(|(_, v)| v.clone()).collect();
+        let other_subfields = get_remaining_subfields(subfields, &KNOWN);
+        Self { tag: String::new(), ind1, ind2, places, publishers, dates, other_subfields }
+    }
+
+    fn to_subfields(&self, _format: MarcFormat) -> Vec<(char, String)> {
+        let mut out = Vec::new();
+        match self.tag.as_str() {
+            "210" => {
+                for p in &self.places {
+                    out.push(('a', p.clone()));
+                }
+                for p in &self.publishers {
+                    out.push(('c', p.clone()));
+                }
+                for d in &self.dates {
+                    out.push(('d', d.clone()));
+                }
+            }
+            _ => {
+                if let Some(p) = self.places.first() {
+                    out.push(('a', p.clone()));
+                }
+                if let Some(p) = self.publishers.first() {
+                    out.push(('b', p.clone()));
+                }
+                if let Some(d) = self.dates.first() {
+                    out.push(('c', d.clone()));
+                }
+            }
+        }
+        out.extend(self.other_subfields.clone());
+        out
+    }
+}
+
 /// Edition fields (25X in MARC21, 2XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Edition {
     /// Edition statement (250 in MARC21, 205 in UNIMARC)
     EditionStatement(EditionStatementData),
+    /// Publication/distribution: place, publisher, date (260/264 MARC21, 210 UNIMARC)
+    Publication(PublicationData),
     /// Musical presentation statement (254 in MARC21)
     MusicalPresentationStatement(NoteData),
     /// Cartographic mathematical data (255 in MARC21, 206 in UNIMARC)
@@ -53,10 +132,11 @@ pub enum Edition {
 }
 
 impl Edition {
-    pub fn tag(&self, format: MarcFormat) -> Option<&'static str> {
+    pub fn tag(&self, format: MarcFormat) -> Option<&str> {
         match (self, format) {
             (Edition::EditionStatement(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("250"),
             (Edition::EditionStatement(_), MarcFormat::Unimarc) => Some("205"),
+            (Edition::Publication(d), _) => Some(d.tag.as_str()),
             (Edition::MusicalPresentationStatement(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("254"),
             (Edition::MusicalPresentationStatement(_), MarcFormat::Unimarc) => None,
             (Edition::CartographicMathematicalData(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("255"),
@@ -81,6 +161,21 @@ impl Edition {
             ("250", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("205", MarcFormat::Unimarc) => {
                 EditionStatementData::from_subfields(ind1, ind2, subfields)
                     .map(Edition::EditionStatement)
+            }
+            ("260", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
+                let mut d = PublicationData::from_subfields_260_264(ind1, ind2, subfields);
+                d.tag = "260".to_string();
+                Some(Edition::Publication(d))
+            }
+            ("264", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
+                let mut d = PublicationData::from_subfields_260_264(ind1, ind2, subfields);
+                d.tag = "264".to_string();
+                Some(Edition::Publication(d))
+            }
+            ("210", MarcFormat::Unimarc) => {
+                let mut d = PublicationData::from_subfields_210(ind1, ind2, subfields);
+                d.tag = "210".to_string();
+                Some(Edition::Publication(d))
             }
             ("254", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
                 NoteData::from_subfields(ind1, ind2, subfields)
@@ -110,6 +205,7 @@ impl Edition {
         let tag = self.tag(format)?;
         let df = match self {
             Edition::EditionStatement(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
+            Edition::Publication(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields(format)),
             Edition::MusicalPresentationStatement(d)
             | Edition::CartographicMathematicalData(d)
             | Edition::ComputerFileCharacteristics(d)

@@ -1,7 +1,10 @@
 pub mod common;
 pub mod added_entry;
+pub mod classification;
 pub mod control;
 pub mod edition;
+pub mod isbn;
+pub mod language;
 pub mod linking;
 pub mod main_entry;
 pub mod note;
@@ -13,8 +16,11 @@ pub mod title;
 
 pub use common::*;
 pub use added_entry::*;
+pub use classification::*;
 pub use control::*;
 pub use edition::*;
+pub use isbn::*;
+pub use language::*;
 pub use linking::*;
 pub use main_entry::*;
 pub use note::*;

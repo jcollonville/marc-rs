@@ -1,7 +1,7 @@
 use crate::encoding::{convert_to_utf8, convert_to_utf8_heuristic};
 use crate::fields::{
-    AddedEntry, Control, Edition, Linking, MainEntry, Note, Physical, Series, Specimen, Subject,
-    Title,
+    AddedEntry, Control, DeweyClassification, Edition, Isbn, LanguageData, Linking, MainEntry,
+    Note, Physical, Series, Specimen, Subject, Title,
 };
 use crate::format::{Encoding, FormatEncoding, MarcFormat};
 use crate::record::{ControlField, DataField, Leader, Record, Subfield};
@@ -175,9 +175,9 @@ fn dispatch_control_field(
     record: &mut Record,
 ) {
     if let Some(ctrl) = Control::try_parse(tag, value, format) {
-        record.control.push(ctrl);
+        record.push_control(ctrl);
     } else {
-        record.other_control.push(ControlField {
+        record.push_other_control(ControlField {
             tag: tag.to_string(),
             value: value.to_string(),
         });
@@ -193,50 +193,62 @@ fn dispatch_data_field(
     format: MarcFormat,
     record: &mut Record,
 ) {
-    // Try each field module in priority order
+    // Try each field module in priority order (ISBN before Physical so 010 UNIMARC is ISBN)
+    if let Some(isbn) = Isbn::try_parse(tag, ind1, ind2, subfields, format) {
+        record.push_isbn(isbn);
+        return;
+    }
     if let Some(t) = Title::try_parse(tag, ind1, ind2, subfields, format) {
-        record.titles.push(t);
+        record.push_title(t);
         return;
     }
     if let Some(me) = MainEntry::try_parse(tag, ind1, ind2, subfields, format) {
-        record.main_entries.push(me);
+        record.push_main_entry(me);
         return;
     }
     if let Some(ed) = Edition::try_parse(tag, ind1, ind2, subfields, format) {
-        record.editions.push(ed);
+        record.push_edition(ed);
         return;
     }
     if let Some(ph) = Physical::try_parse(tag, ind1, ind2, subfields, format) {
-        record.physical.push(ph);
+        record.push_physical(ph);
         return;
     }
     if let Some(se) = Series::try_parse(tag, ind1, ind2, subfields, format) {
-        record.series.push(se);
+        record.push_series(se);
+        return;
+    }
+    if let Some(dc) = DeweyClassification::try_parse(tag, ind1, ind2, subfields, format) {
+        record.push_classification(dc);
+        return;
+    }
+    if let Some(lang) = LanguageData::try_parse(tag, ind1, ind2, subfields, format) {
+        record.push_language(lang);
         return;
     }
     if let Some(no) = Note::try_parse(tag, ind1, ind2, subfields, format) {
-        record.notes.push(no);
+        record.push_note(no);
         return;
     }
     if let Some(su) = Subject::try_parse(tag, ind1, ind2, subfields, format) {
-        record.subjects.push(su);
+        record.push_subject(su);
         return;
     }
     if let Some(ae) = AddedEntry::try_parse(tag, ind1, ind2, subfields, format) {
-        record.added_entries.push(ae);
+        record.push_added_entry(ae);
         return;
     }
     if let Some(li) = Linking::try_parse(tag, ind1, ind2, subfields, format) {
-        record.linking.push(li);
+        record.push_linking(li);
         return;
     }
     if let Some(sp) = Specimen::try_parse(tag, ind1, ind2, subfields, format) {
-        record.specimens.push(sp);
+        record.push_specimen(sp);
         return;
     }
 
     // Unrecognized tag => other_data
-    record.other_data.push(DataField {
+    record.push_other_data(DataField {
         tag: tag.to_string(),
         ind1,
         ind2,
@@ -505,8 +517,9 @@ pub fn parse_marc_xml(
                     if let Some(ref mut record) = current_record {
                         if current_value.len() >= 24 {
                             let leader_bytes = current_value.as_bytes()[..24].to_vec();
-                            record.leader = Leader::from_bytes(&leader_bytes)
+                            let leader = Leader::from_bytes(&leader_bytes)
                                 .map_err(ParseError::InvalidLeader)?;
+                            record.set_leader(leader);
                         }
                     }
                 }
