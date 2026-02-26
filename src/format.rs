@@ -51,6 +51,12 @@ pub enum Encoding {
     Iso8859_15,
     /// ISO 5426 (Extension of the Latin alphabet for bibliographic information interchange)
     Iso5426,
+    /// ISO 6937 (Coded character set for text communication)
+    Iso6937,
+    /// ISO 5427 (Cyrillic)
+    Iso5427,
+    /// ISO 5428 (Greek)
+    Iso5428,
 }
 
 impl From<&str> for Encoding {
@@ -64,6 +70,9 @@ impl From<&str> for Encoding {
             "iso8859-7" => Encoding::Iso8859_7,
             "iso8859-15" | "latin9" | "latin-9" => Encoding::Iso8859_15,
             "iso5426" | "iso-5426" => Encoding::Iso5426,
+            "iso6937" | "iso-6937" => Encoding::Iso6937,
+            "iso5427" | "iso-5427" => Encoding::Iso5427,
+            "iso5428" | "iso-5428" => Encoding::Iso5428,
             _ => Encoding::Utf8,
         }
     }
@@ -80,6 +89,9 @@ impl Display for Encoding {
             Encoding::Iso8859_7 => write!(f, "iso8859-7"),
             Encoding::Iso8859_15 => write!(f, "iso8859-15"),
             Encoding::Iso5426 => write!(f, "iso5426"),
+            Encoding::Iso6937 => write!(f, "iso6937"),
+            Encoding::Iso5427 => write!(f, "iso5427"),
+            Encoding::Iso5428 => write!(f, "iso5428"),
         }
     }
 }

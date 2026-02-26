@@ -1,20 +1,15 @@
-#[cfg(feature = "serde")]
 use marc_rs::*;
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_from_slice() {
-    // This is a minimal test - in practice you'd use real MARC data
+fn test_helpers_from_slice() {
     let data = b"";
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
-    let result = serde_marc::from_slice(data, format);
-    // Empty data should return an error
+    let result = helpers::from_slice(data, format);
     assert!(result.is_err());
 }
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_to_vec() {
+fn test_helpers_to_vec() {
     let leader = Leader {
         record_length: 100,
         record_status: 'n',
@@ -34,25 +29,20 @@ fn test_serde_marc_to_vec() {
         undefined: ' ',
     };
 
-    let record = Record {
-        leader,
-        control_fields: vec![ControlField {
-            tag: "001".to_string(),
-            value: "12345".to_string(),
-        }],
-        data_fields: vec![],
-    };
+    let mut record = Record::new(leader);
+    record
+        .control
+        .push(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
-    let result = serde_marc::to_vec(&record, format);
+    let result = helpers::to_vec(&record, format);
     assert!(result.is_ok());
     let bytes = result.unwrap();
     assert!(!bytes.is_empty());
 }
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_to_string_xml() {
+fn test_helpers_to_string_xml() {
     let leader = Leader {
         record_length: 100,
         record_status: 'n',
@@ -72,26 +62,21 @@ fn test_serde_marc_to_string_xml() {
         undefined: ' ',
     };
 
-    let record = Record {
-        leader,
-        control_fields: vec![ControlField {
-            tag: "001".to_string(),
-            value: "12345".to_string(),
-        }],
-        data_fields: vec![],
-    };
+    let mut record = Record::new(leader);
+    record
+        .control
+        .push(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::marc_xml();
-    let result = serde_marc::to_string(&record, format);
+    let result = helpers::to_string(&record, format);
     assert!(result.is_ok());
     let xml = result.unwrap();
     assert!(xml.contains("<record"));
     assert!(xml.contains("001"));
 }
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_from_str_xml() {
+fn test_helpers_from_str_xml() {
     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 <record xmlns="http://www.loc.gov/MARC21/slim">
   <leader>00000nam a2200000 a 4500</leader>
@@ -99,16 +84,18 @@ fn test_serde_marc_from_str_xml() {
 </record>"#;
 
     let format = FormatEncoding::marc_xml();
-    let result = serde_marc::from_str(xml, format);
+    let result = helpers::from_str(xml, format);
     assert!(result.is_ok());
     let record = result.unwrap();
-    assert_eq!(record.control_fields.len(), 1);
-    assert_eq!(record.control_fields[0].tag, "001");
+    assert_eq!(record.control.len(), 1);
+    match &record.control[0] {
+        Control::ControlNumber(v) => assert_eq!(v, "12345"),
+        _ => panic!("Expected ControlNumber"),
+    }
 }
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_to_writer() {
+fn test_helpers_to_writer() {
     let leader = Leader {
         record_length: 100,
         record_status: 'n',
@@ -128,25 +115,20 @@ fn test_serde_marc_to_writer() {
         undefined: ' ',
     };
 
-    let record = Record {
-        leader,
-        control_fields: vec![ControlField {
-            tag: "001".to_string(),
-            value: "12345".to_string(),
-        }],
-        data_fields: vec![],
-    };
+    let mut record = Record::new(leader);
+    record
+        .control
+        .push(Control::ControlNumber("12345".to_string()));
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
     let mut buffer = Vec::new();
-    let result = serde_marc::to_writer(&record, format, &mut buffer);
+    let result = helpers::to_writer(&record, format, &mut buffer);
     assert!(result.is_ok());
     assert!(!buffer.is_empty());
 }
 
-#[cfg(feature = "serde")]
 #[test]
-fn test_serde_marc_to_records() {
+fn test_helpers_to_records() {
     let leader = Leader {
         record_length: 100,
         record_status: 'n',
@@ -166,28 +148,101 @@ fn test_serde_marc_to_records() {
         undefined: ' ',
     };
 
-    let records = vec![
-        Record {
-            leader: leader.clone(),
-            control_fields: vec![ControlField {
-                tag: "001".to_string(),
-                value: "12345".to_string(),
-            }],
-            data_fields: vec![],
-        },
-        Record {
-            leader,
-            control_fields: vec![ControlField {
-                tag: "001".to_string(),
-                value: "67890".to_string(),
-            }],
-            data_fields: vec![],
-        },
-    ];
+    let mut r1 = Record::new(leader.clone());
+    r1.control
+        .push(Control::ControlNumber("12345".to_string()));
+    let mut r2 = Record::new(leader);
+    r2.control
+        .push(Control::ControlNumber("67890".to_string()));
+    let records = vec![r1, r2];
 
     let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
-    let result = serde_marc::to_records(&records, format);
+    let result = helpers::to_records(&records, format);
     assert!(result.is_ok());
     let bytes = result.unwrap();
     assert!(!bytes.is_empty());
+}
+
+#[test]
+fn test_json_round_trip() {
+    let leader = Leader {
+        record_length: 100,
+        record_status: 'n',
+        record_type: 'a',
+        bibliographic_level: 'm',
+        type_of_control: ' ',
+        character_coding_scheme: 'a',
+        indicator_count: 2,
+        subfield_code_count: 2,
+        base_address_of_data: 24,
+        encoding_level: ' ',
+        descriptive_cataloging_form: ' ',
+        multipart_resource_record_level: ' ',
+        length_of_length_of_field_portion: 4,
+        length_of_starting_character_position_portion: 5,
+        length_of_implementation_defined_portion: 0,
+        undefined: '0',
+    };
+
+    let mut record = Record::new(leader);
+    record
+        .control
+        .push(Control::ControlNumber("ocm12345".to_string()));
+    record
+        .control
+        .push(Control::FixedLengthDataElements("some-fixed-data".to_string()));
+    record.titles.push(Title::TitleStatement(
+        marc_rs::fields::title::TitleStatementData {
+            ind1: '0',
+            ind2: '4',
+            title: "The Rust Programming Language".to_string(),
+            remainder: Some("a comprehensive guide".to_string()),
+            responsibility: Some("Steve Klabnik and Carol Nichols".to_string()),
+            medium: None,
+            number_of_part: None,
+            name_of_part: None,
+            other_subfields: vec![],
+        },
+    ));
+    record.main_entries.push(MainEntry::PersonalName(
+        marc_rs::fields::common::PersonalNameData {
+            ind1: '1',
+            ind2: ' ',
+            name: "Klabnik, Steve".to_string(),
+            numeration: None,
+            titles: None,
+            dates: Some("1988-".to_string()),
+            relator_term: Some("author".to_string()),
+            fuller_form: None,
+            relator_code: None,
+            other_subfields: vec![],
+        },
+    ));
+    record.subjects.push(Subject::SubjectTopicalTerm(
+        marc_rs::fields::common::SubjectData {
+            ind1: ' ',
+            ind2: '0',
+            term: "Rust (Computer program language)".to_string(),
+            form_subdivision: None,
+            general_subdivision: None,
+            chronological_subdivision: None,
+            geographic_subdivision: None,
+            source: None,
+            other_subfields: vec![('x', "Handbooks, manuals, etc.".to_string())],
+        },
+    ));
+    record.other_data.push(DataField {
+        tag: "999".to_string(),
+        ind1: ' ',
+        ind2: ' ',
+        subfields: vec![Subfield {
+            code: 'a',
+            value: "local-data".to_string(),
+        }],
+    });
+
+    let json = serde_json::to_string(&record).expect("Serialize to JSON");
+    let deserialized: Record = serde_json::from_str(&json).expect("Deserialize from JSON");
+
+    assert_eq!(record, deserialized);
 }

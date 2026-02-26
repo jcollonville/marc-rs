@@ -1,38 +1,161 @@
-use crate::format::MarcFormat;
+use serde::{Deserialize, Serialize};
 
-/// Title and title-related fields (20X-24X)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use crate::fields::common::*;
+use crate::format::MarcFormat;
+use crate::record::DataField;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TitleStatementData {
+    pub ind1: char,
+    pub ind2: char,
+    pub title: String,
+    pub remainder: Option<String>,
+    pub responsibility: Option<String>,
+    pub medium: Option<String>,
+    pub number_of_part: Option<String>,
+    pub name_of_part: Option<String>,
+    pub other_subfields: Vec<(char, String)>,
+}
+
+impl TitleStatementData {
+    const KNOWN_CODES: [char; 6] = ['a', 'b', 'c', 'h', 'n', 'p'];
+
+    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+        let title = get_subfield(subfields, 'a')?;
+        Some(Self {
+            ind1,
+            ind2,
+            title,
+            remainder: get_subfield(subfields, 'b'),
+            responsibility: get_subfield(subfields, 'c'),
+            medium: get_subfield(subfields, 'h'),
+            number_of_part: get_subfield(subfields, 'n'),
+            name_of_part: get_subfield(subfields, 'p'),
+            other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
+        })
+    }
+
+    fn to_subfields(&self) -> Vec<(char, String)> {
+        let mut out = vec![('a', self.title.clone())];
+        push_subfield(&mut out, 'b', &self.remainder);
+        push_subfield(&mut out, 'c', &self.responsibility);
+        push_subfield(&mut out, 'h', &self.medium);
+        push_subfield(&mut out, 'n', &self.number_of_part);
+        push_subfield(&mut out, 'p', &self.name_of_part);
+        out.extend(self.other_subfields.clone());
+        out
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TitleData {
+    pub ind1: char,
+    pub ind2: char,
+    pub title: String,
+    pub remainder: Option<String>,
+    pub other_subfields: Vec<(char, String)>,
+}
+
+impl TitleData {
+    const KNOWN_CODES: [char; 2] = ['a', 'b'];
+
+    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+        let title = get_subfield(subfields, 'a')?;
+        Some(Self {
+            ind1,
+            ind2,
+            title,
+            remainder: get_subfield(subfields, 'b'),
+            other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
+        })
+    }
+
+    fn to_subfields(&self) -> Vec<(char, String)> {
+        let mut out = vec![('a', self.title.clone())];
+        push_subfield(&mut out, 'b', &self.remainder);
+        out.extend(self.other_subfields.clone());
+        out
+    }
+}
+
+/// Title and title-related fields
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Title {
-    /// Title statement (200 in UNIMARC, 245 in MARC21)
-    TitleStatement,
+    /// Title statement (245 in MARC21, 200 in UNIMARC)
+    TitleStatement(TitleStatementData),
     /// Varying form of title (246 in MARC21, 517 in UNIMARC)
-    VaryingFormOfTitle,
+    VaryingFormOfTitle(TitleData),
     /// Former title (247 in MARC21, 520 in UNIMARC)
-    FormerTitle,
+    FormerTitle(TitleData),
     /// Parallel title (246 in MARC21 variant, 510 in UNIMARC)
-    ParallelTitle,
+    ParallelTitle(TitleData),
     /// Other title information (246 in MARC21, 517 in UNIMARC)
-    OtherTitleInformation,
+    OtherTitleInformation(TitleData),
 }
 
 impl Title {
-    /// Get the tag as string for the given format
     pub fn tag(&self, format: MarcFormat) -> &'static str {
         match (self, format) {
-            (Title::TitleStatement, MarcFormat::Marc21 | MarcFormat::MarcXml) => "245", // XML follows MARC21 structure
-            (Title::TitleStatement, MarcFormat::Unimarc) => "200",
+            (Title::TitleStatement(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => "245",
+            (Title::TitleStatement(_), MarcFormat::Unimarc) => "200",
+            (Title::VaryingFormOfTitle(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => "246",
+            (Title::VaryingFormOfTitle(_), MarcFormat::Unimarc) => "517",
+            (Title::FormerTitle(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => "247",
+            (Title::FormerTitle(_), MarcFormat::Unimarc) => "520",
+            (Title::ParallelTitle(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => "246",
+            (Title::ParallelTitle(_), MarcFormat::Unimarc) => "510",
+            (Title::OtherTitleInformation(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => "246",
+            (Title::OtherTitleInformation(_), MarcFormat::Unimarc) => "517",
+        }
+    }
 
-            (Title::VaryingFormOfTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246",
-            (Title::VaryingFormOfTitle, MarcFormat::Unimarc) => "517",
+    /// Parse a data field into a typed Title variant.
+    pub fn try_parse(
+        tag: &str,
+        ind1: char,
+        ind2: char,
+        subfields: &[(char, String)],
+        format: MarcFormat,
+    ) -> Option<Self> {
+        match (tag, format) {
+            ("245", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("200", MarcFormat::Unimarc) => {
+                TitleStatementData::from_subfields(ind1, ind2, subfields)
+                    .map(Title::TitleStatement)
+            }
+            ("246", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
+                TitleData::from_subfields(ind1, ind2, subfields)
+                    .map(Title::VaryingFormOfTitle)
+            }
+            ("247", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
+                TitleData::from_subfields(ind1, ind2, subfields).map(Title::FormerTitle)
+            }
+            ("510", MarcFormat::Unimarc) => {
+                TitleData::from_subfields(ind1, ind2, subfields).map(Title::ParallelTitle)
+            }
+            ("517", MarcFormat::Unimarc) => {
+                TitleData::from_subfields(ind1, ind2, subfields)
+                    .map(Title::VaryingFormOfTitle)
+            }
+            ("520", MarcFormat::Unimarc) => {
+                TitleData::from_subfields(ind1, ind2, subfields).map(Title::FormerTitle)
+            }
+            _ => None,
+        }
+    }
 
-            (Title::FormerTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "247",
-            (Title::FormerTitle, MarcFormat::Unimarc) => "520",
-
-            (Title::ParallelTitle, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246", // Used with specific indicators
-            (Title::ParallelTitle, MarcFormat::Unimarc) => "510",
-
-            (Title::OtherTitleInformation, MarcFormat::Marc21 | MarcFormat::MarcXml) => "246", // Used with specific indicators
-            (Title::OtherTitleInformation, MarcFormat::Unimarc) => "517",
+    /// Convert back to raw DataField for writing.
+    pub fn to_raw(&self, format: MarcFormat) -> DataField {
+        let tag = self.tag(format);
+        match self {
+            Title::TitleStatement(d) => {
+                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+            }
+            Title::VaryingFormOfTitle(d)
+            | Title::FormerTitle(d)
+            | Title::ParallelTitle(d)
+            | Title::OtherTitleInformation(d) => {
+                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+            }
         }
     }
 }

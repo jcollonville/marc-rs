@@ -1,6 +1,6 @@
 use crate::encoding::convert_from_encoding;
 use crate::format::{FormatEncoding, MarcFormat};
-use crate::record::Record;
+use crate::record::{ControlField, DataField, Record};
 use std::io::Write;
 
 /// Write error type
@@ -38,7 +38,11 @@ impl From<quick_xml::Error> for WriteError {
 }
 
 /// Write MARC records to output
-pub fn write(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
+pub fn write(
+    records: &[Record],
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
     match format_encoding.format {
         MarcFormat::Marc21 => write_marc21_binary(records, format_encoding, output),
         MarcFormat::Unimarc => write_unimarc_binary(records, format_encoding, output),
@@ -47,137 +51,217 @@ pub fn write(records: &[Record], format_encoding: FormatEncoding, output: &mut d
 }
 
 /// Write a single record (convenience function)
-pub fn write_one(record: &Record, format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
+pub fn write_one(
+    record: &Record,
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
     write(&[record.clone()], format_encoding, output)
 }
 
 /// Write MARC21 binary format
-pub fn write_marc21_binary(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
+pub fn write_marc21_binary(
+    records: &[Record],
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
     for record in records {
         write_single_marc21_binary(record, format_encoding, output)?;
     }
     Ok(())
 }
 
+/// Collect all fields from a typed Record into raw ControlField/DataField lists,
+/// sorted by tag for canonical output order.
+pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlField>, Vec<DataField>) {
+    let mut control_fields = Vec::new();
+    let mut data_fields = Vec::new();
+
+    // Typed control fields
+    for c in &record.control {
+        if let Some(cf) = c.to_raw(format) {
+            control_fields.push(cf);
+        }
+    }
+    // Other control fields
+    control_fields.extend(record.other_control.clone());
+
+    // Typed data fields
+    for t in &record.titles {
+        data_fields.push(t.to_raw(format));
+    }
+    for me in &record.main_entries {
+        data_fields.push(me.to_raw(format));
+    }
+    for ed in &record.editions {
+        if let Some(df) = ed.to_raw(format) {
+            data_fields.push(df);
+        }
+    }
+    for ph in &record.physical {
+        if let Some(df) = ph.to_raw(format) {
+            data_fields.push(df);
+        }
+    }
+    for se in &record.series {
+        data_fields.push(se.to_raw(format));
+    }
+    for no in &record.notes {
+        data_fields.push(no.to_raw(format));
+    }
+    for su in &record.subjects {
+        if let Some(df) = su.to_raw(format) {
+            data_fields.push(df);
+        }
+    }
+    for ae in &record.added_entries {
+        data_fields.push(ae.to_raw(format));
+    }
+    for li in &record.linking {
+        if let Some(df) = li.to_raw(format) {
+            data_fields.push(df);
+        }
+    }
+    // Other data fields
+    data_fields.extend(record.other_data.clone());
+
+    // Sort for canonical order
+    control_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
+    data_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
+
+    (control_fields, data_fields)
+}
+
 /// Write a single MARC21 binary record
-fn write_single_marc21_binary(record: &Record, format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
-    // Calculate base address (24 bytes leader + directory)
+fn write_single_marc21_binary(
+    record: &Record,
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
+    let (control_fields, data_fields) = collect_raw_fields(record, format_encoding.format);
+
     let mut directory_entries = Vec::new();
     let mut data_area = Vec::new();
 
-    // Write control fields
-    for field in &record.control_fields {
-        let value_bytes = convert_from_encoding(&field.value, format_encoding.encoding).map_err(|e| WriteError::InvalidEncoding(e))?;
+    for field in &control_fields {
+        let value_bytes = convert_from_encoding(&field.value, format_encoding.encoding)
+            .map_err(WriteError::InvalidEncoding)?;
         let start = data_area.len();
         data_area.extend_from_slice(&value_bytes);
-        data_area.push(0x1E); // Field terminator
-
+        data_area.push(0x1E);
         directory_entries.push((field.tag.clone(), start, value_bytes.len() + 1));
     }
 
-    // Write data fields
-    for field in &record.data_fields {
+    for field in &data_fields {
         let mut field_data = Vec::new();
         field_data.push(field.ind1 as u8);
         field_data.push(field.ind2 as u8);
 
         for subfield in &field.subfields {
-            field_data.push(0x1F); // Subfield delimiter
+            field_data.push(0x1F);
             field_data.push(subfield.code as u8);
-            let value_bytes = convert_from_encoding(&subfield.value, format_encoding.encoding).map_err(|e| WriteError::InvalidEncoding(e))?;
+            let value_bytes = convert_from_encoding(&subfield.value, format_encoding.encoding)
+                .map_err(WriteError::InvalidEncoding)?;
             field_data.extend_from_slice(&value_bytes);
         }
 
-        field_data.push(0x1E); // Field terminator
+        field_data.push(0x1E);
 
         let start = data_area.len();
         data_area.extend_from_slice(&field_data);
-
         directory_entries.push((field.tag.clone(), start, field_data.len()));
     }
 
-    data_area.push(0x1D); // Record terminator
+    data_area.push(0x1D);
 
-    // Build directory
     let mut directory = Vec::new();
     for (tag, start, length) in &directory_entries {
         let tag_bytes = tag.as_bytes();
         if tag_bytes.len() != 3 {
-            return Err(WriteError::InvalidRecord(format!("Invalid tag length: {}", tag)));
+            return Err(WriteError::InvalidRecord(format!(
+                "Invalid tag length: {}",
+                tag
+            )));
         }
         directory.extend_from_slice(tag_bytes);
         directory.extend_from_slice(format!("{:04}{:05}", length, start).as_bytes());
     }
 
-    // Calculate base address
     let base_address = 24 + directory.len();
-
-    // Update leader
     let mut leader = record.leader.clone();
     leader.base_address_of_data = base_address as u16;
     leader.record_length = (base_address + data_area.len()) as u16;
 
-    // Write leader
-    let leader_bytes = leader.to_bytes();
-    output.write_all(&leader_bytes)?;
-
-    // Write directory
+    output.write_all(&leader.to_bytes())?;
     output.write_all(&directory)?;
-
-    // Write data area
     output.write_all(&data_area)?;
 
     Ok(())
 }
 
 /// Write UNIMARC binary format
-pub fn write_unimarc_binary(records: &[Record], format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
-    // UNIMARC uses the same binary structure as MARC21
+pub fn write_unimarc_binary(
+    records: &[Record],
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
     write_marc21_binary(records, format_encoding, output)
 }
 
 /// Write MARC XML format
-pub fn write_marc_xml(records: &[Record], _format_encoding: FormatEncoding, output: &mut dyn Write) -> Result<(), WriteError> {
+pub fn write_marc_xml(
+    records: &[Record],
+    format_encoding: FormatEncoding,
+    output: &mut dyn Write,
+) -> Result<(), WriteError> {
     use quick_xml::events::{BytesEnd, BytesStart, Event};
     use quick_xml::Writer;
 
+    let (format, _) = (format_encoding.format, format_encoding.encoding);
+
     let mut writer = Writer::new(output);
 
-    // Write XML declaration
-    writer.write_event(Event::Decl(quick_xml::events::BytesDecl::new("1.0", Some("UTF-8"), None)))?;
+    writer.write_event(Event::Decl(quick_xml::events::BytesDecl::new(
+        "1.0",
+        Some("UTF-8"),
+        None,
+    )))?;
 
     if records.len() > 1 {
-        // Write collection wrapper
         let mut collection_start = BytesStart::new("collection");
         collection_start.push_attribute(("xmlns", "http://www.loc.gov/MARC21/slim"));
         writer.write_event(Event::Start(collection_start))?;
     }
 
     for record in records {
-        // Write record
+        let (control_fields, data_fields) = collect_raw_fields(record, format);
+
         let mut record_start = BytesStart::new("record");
         record_start.push_attribute(("xmlns", "http://www.loc.gov/MARC21/slim"));
         writer.write_event(Event::Start(record_start))?;
 
-        // Write leader
+        // Leader
         let leader_bytes = record.leader.to_bytes();
-        let leader_str = std::str::from_utf8(&leader_bytes).map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
+        let leader_str = std::str::from_utf8(&leader_bytes)
+            .map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
         let leader_start = BytesStart::new("leader");
         writer.write_event(Event::Start(leader_start))?;
-        writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(leader_str)))?;
+        writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+            leader_str,
+        )))?;
         writer.write_event(Event::End(BytesEnd::new("leader")))?;
 
-        // Write control fields
-        for field in &record.control_fields {
+        for field in &control_fields {
             let mut field_start = BytesStart::new("controlfield");
             field_start.push_attribute(("tag", field.tag.as_str()));
             writer.write_event(Event::Start(field_start.clone()))?;
-            writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(&field.value)))?;
+            writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+                &field.value,
+            )))?;
             writer.write_event(Event::End(BytesEnd::new("controlfield")))?;
         }
 
-        // Write data fields
-        for field in &record.data_fields {
+        for field in &data_fields {
             let mut field_start = BytesStart::new("datafield");
             field_start.push_attribute(("tag", field.tag.as_str()));
             field_start.push_attribute(("ind1", field.ind1.to_string().as_str()));
@@ -188,7 +272,9 @@ pub fn write_marc_xml(records: &[Record], _format_encoding: FormatEncoding, outp
                 let mut subfield_start = BytesStart::new("subfield");
                 subfield_start.push_attribute(("code", subfield.code.to_string().as_str()));
                 writer.write_event(Event::Start(subfield_start.clone()))?;
-                writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(&subfield.value)))?;
+                writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+                    &subfield.value,
+                )))?;
                 writer.write_event(Event::End(BytesEnd::new("subfield")))?;
             }
 

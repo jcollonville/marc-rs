@@ -3,24 +3,21 @@ use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
+use serde_json;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: {} <marc-file> [format] [encoding] [output-format]", args[0]);
-        eprintln!("  format: marc21, unimarc, or xml (default: auto-detect)");
-        eprintln!("  encoding: utf8, marc8, iso8859-1, etc. (default: auto-detect)");
-        eprintln!("  output-format: plain, marc-xml, marc, or unimarc (default: plain)");
+        eprintln!("Usage: {} <marc-file> [output-format]", args[0]);
+        eprintln!("  output-format: plain, json, marc-xml, marc, or unimarc (default: plain). All output is UTF-8.");
         std::process::exit(1);
     }
 
     let file_path = &args[1];
-    let format = args.get(2).map(|s| s.as_str());
-    let encoding = args.get(3).map(|s| s.as_str());
-    let output_format = args.get(4).map(|s| s.as_str()).unwrap_or("plain");
+    let output_format = args.get(2).map(|s| s.as_str()).unwrap_or("plain");
 
-    match view_marc_file(file_path, format, encoding, output_format) {
+    match view_marc_file(file_path, output_format) {
         Ok(()) => {}
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -29,26 +26,22 @@ fn main() {
     }
 }
 
-fn view_marc_file(file_path: &str, format: Option<&str>, encoding: Option<&str>, output_format: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn view_marc_file(
+    file_path: &str,
+    output_format: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(file_path);
 
     if !path.exists() {
         return Err(format!("File not found: {}", file_path).into());
     }
 
-    // Read file
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
-    // Detect or use specified format
-    let format_encoding = if let Some(fmt) = format {
-        parse_format_encoding(fmt, encoding)?
-    } else {
-        detect_format_encoding(&buffer, encoding)?
-    };
+    let format_encoding = detect_format_encoding(&buffer)?;
 
-    // Parse records
     let records = parse(&buffer, format_encoding)?;
 
     if records.is_empty() {
@@ -56,11 +49,10 @@ fn view_marc_file(file_path: &str, format: Option<&str>, encoding: Option<&str>,
         return Ok(());
     }
 
-    // Output based on format
     match output_format.to_lowercase().as_str() {
         "plain" => {
             println!("File: {}", file_path);
-            println!("Format: {:?}, Encoding: {:?}", format_encoding.format, format_encoding.encoding);
+            println!("Format: {:?} (output UTF-8)", format_encoding.format);
             println!("{}", "=".repeat(80));
             println!("Found {} record(s)\n", records.len());
 
@@ -70,139 +62,132 @@ fn view_marc_file(file_path: &str, format: Option<&str>, encoding: Option<&str>,
                     println!("Record #{}", idx + 1);
                     println!("{}", "─".repeat(80));
                 }
-                display_record(record);
+                display_record(record, format_encoding.format);
                 if idx < records.len() - 1 {
                     println!();
                 }
             }
         }
-
+        "json" => {
+            let json = serde_json::to_string_pretty(&records)
+                .map_err(|e| format!("Failed to serialize to JSON: {}", e))?;
+            println!("{}", json);
+        }
         "marc-xml" => {
             let xml_format = FormatEncoding::marc_xml();
-            let xml = helpers::to_string_many(&records, xml_format).map_err(|e| format!("Failed to serialize to XML: {}", e))?;
+            let xml = helpers::to_string_many(&records, xml_format)
+                .map_err(|e| format!("Failed to serialize to XML: {}", e))?;
             println!("{}", xml);
         }
         "marc" | "marc21" => {
-            let marc_format = FormatEncoding::marc21_default();
-            let bytes = helpers::to_vec_many(&records, marc_format).map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
-            std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write MARC21 output: {}", e))?;
+            let marc_format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Utf8);
+            let bytes = helpers::to_vec_many(&records, marc_format)
+                .map_err(|e| format!("Failed to serialize to MARC21: {}", e))?;
+            std::io::stdout()
+                .write_all(&bytes)
+                .map_err(|e| format!("Failed to write MARC21 output: {}", e))?;
         }
         "unimarc" => {
-            let unimarc_format = FormatEncoding::unimarc_default();
-            let bytes = helpers::to_vec_many(&records, unimarc_format).map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
-            std::io::stdout().write_all(&bytes).map_err(|e| format!("Failed to write UNIMARC output: {}", e))?;
+            let unimarc_format = FormatEncoding::new(MarcFormat::Unimarc, Encoding::Utf8);
+            let bytes = helpers::to_vec_many(&records, unimarc_format)
+                .map_err(|e| format!("Failed to serialize to UNIMARC: {}", e))?;
+            std::io::stdout()
+                .write_all(&bytes)
+                .map_err(|e| format!("Failed to write UNIMARC output: {}", e))?;
         }
         _ => {
-            return Err(format!("Unknown output format: {}. Use: plain, marc-xml, marc, or unimarc", output_format).into());
+            return Err(format!(
+                "Unknown output format: {}. Use: plain, json, marc-xml, marc, or unimarc",
+                output_format
+            )
+            .into());
         }
     }
 
     Ok(())
 }
 
-fn parse_format_encoding(format: &str, encoding: Option<&str>) -> Result<FormatEncoding, String> {
-    let fmt = match format.to_lowercase().as_str() {
-        "marc21" | "marc" => MarcFormat::Marc21,
-        "unimarc" => MarcFormat::Unimarc,
-        "xml" => MarcFormat::MarcXml,
-        _ => return Err(format!("Unknown format: {}. Use: marc21, unimarc, or xml", format)),
-    };
-
-    let enc = if let Some(enc_str) = encoding {
-        parse_encoding(enc_str)?
-    } else {
-        match fmt {
-            MarcFormat::Marc21 => Encoding::Marc8,
-            MarcFormat::Unimarc => Encoding::Utf8,
-            MarcFormat::MarcXml => Encoding::Utf8,
-        }
-    };
-
-    Ok(FormatEncoding::new(fmt, enc))
-}
-
-fn parse_encoding(enc_str: &str) -> Result<Encoding, String> {
-    match enc_str.to_lowercase().as_str() {
-        "utf8" | "utf-8" => Ok(Encoding::Utf8),
-        "marc8" | "marc-8" => Ok(Encoding::Marc8),
-        "iso8859-1" | "latin1" | "latin-1" => Ok(Encoding::Iso8859_1),
-        "iso8859-2" | "latin2" | "latin-2" => Ok(Encoding::Iso8859_2),
-        "iso8859-5" => Ok(Encoding::Iso8859_5),
-        "iso8859-7" => Ok(Encoding::Iso8859_7),
-        "iso8859-15" | "latin9" | "latin-9" => Ok(Encoding::Iso8859_15),
-        "iso5426" | "iso-5426" => Ok(Encoding::Iso5426),
-        _ => Err(format!("Unknown encoding: {}", enc_str)),
-    }
-}
-
-fn detect_format_encoding(buffer: &[u8], encoding: Option<&str>) -> Result<FormatEncoding, String> {
-    // Try to detect format
-    let format = if buffer.starts_with(b"<?xml") || buffer.starts_with(b"<record") || buffer.starts_with(b"<collection") {
+fn detect_format_encoding(buffer: &[u8]) -> Result<FormatEncoding, String> {
+    let format = if buffer.starts_with(b"<?xml")
+        || buffer.starts_with(b"<record")
+        || buffer.starts_with(b"<collection")
+    {
         MarcFormat::MarcXml
     } else if buffer.len() >= 24 {
-        // Check if it looks like binary MARC
-        // Try MARC21 first (most common)
         MarcFormat::Marc21
     } else {
-        return Err("Cannot detect format. Please specify format explicitly.".to_string());
+        return Err("Cannot detect format from file content.".to_string());
     };
-
-    let enc = if let Some(enc_str) = encoding {
-        parse_encoding(enc_str)?
-    } else {
-        match format {
-            MarcFormat::Marc21 => Encoding::Marc8,
-            MarcFormat::Unimarc => Encoding::Utf8,
-            MarcFormat::MarcXml => Encoding::Utf8,
-        }
-    };
-
-    Ok(FormatEncoding::new(format, enc))
+    Ok(FormatEncoding::new(format, Encoding::Utf8))
 }
 
-fn display_record(record: &Record) {
-    // Display Leader
+fn display_record(record: &Record, format: MarcFormat) {
     println!("LEADER");
     println!("  Record Length: {}", record.leader.record_length);
     println!("  Status: {}", record.leader.record_status);
     println!("  Type: {}", record.leader.record_type);
-    println!("  Bibliographic Level: {}", record.leader.bibliographic_level);
+    println!(
+        "  Bibliographic Level: {}",
+        record.leader.bibliographic_level
+    );
     println!("  Type of Control: {}", record.leader.type_of_control);
-    println!("  Character Coding Scheme: {}", record.leader.character_coding_scheme);
+    println!(
+        "  Character Coding Scheme: {}",
+        record.leader.character_coding_scheme
+    );
     println!("  Indicator Count: {}", record.leader.indicator_count);
-    println!("  Subfield Code Count: {}", record.leader.subfield_code_count);
+    println!(
+        "  Subfield Code Count: {}",
+        record.leader.subfield_code_count
+    );
     println!("  Base Address: {}", record.leader.base_address_of_data);
     println!("  Encoding Level: {}", record.leader.encoding_level);
-    println!("  Descriptive Cataloging Form: {}", record.leader.descriptive_cataloging_form);
+    println!(
+        "  Descriptive Cataloging Form: {}",
+        record.leader.descriptive_cataloging_form
+    );
     println!();
 
-    // Display Control Fields
-    if !record.control_fields.is_empty() {
+    // Control fields
+    let has_control = !record.control.is_empty() || !record.other_control.is_empty();
+    if has_control {
         println!("CONTROL FIELDS");
-        for field in &record.control_fields {
-            println!("  {}: {}", field.tag, field.value);
+        for c in &record.control {
+            if let Some(tag) = c.tag(format) {
+                println!("  {}: {}", tag, c.value());
+            }
+        }
+        for c in &record.other_control {
+            println!("  {}: {}", c.tag, c.value);
         }
         println!();
     }
 
-    // Display Data Fields
-    if !record.data_fields.is_empty() {
+    // Data fields: collect all into raw and display
+    let (_, data_fields) = crate::writer::collect_raw_fields(record, format);
+
+    if !data_fields.is_empty() {
         println!("DATA FIELDS");
-        for field in &record.data_fields {
+        for field in &data_fields {
             print!("  {} ", field.tag);
-            if field.ind1 != ' ' {
-                print!("{}", field.ind1);
-            } else {
-                print!("_");
-            }
-            if field.ind2 != ' ' {
-                print!("{}", field.ind2);
-            } else {
-                print!("_");
-            }
+            print!(
+                "{}",
+                if field.ind1 != ' ' {
+                    field.ind1
+                } else {
+                    '_'
+                }
+            );
+            print!(
+                "{}",
+                if field.ind2 != ' ' {
+                    field.ind2
+                } else {
+                    '_'
+                }
+            );
             print!(" ");
 
-            // Display subfields
             let mut first = true;
             for subfield in &field.subfields {
                 if !first {

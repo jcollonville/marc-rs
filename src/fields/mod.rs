@@ -1,3 +1,4 @@
+pub mod common;
 pub mod added_entry;
 pub mod control;
 pub mod edition;
@@ -9,6 +10,7 @@ pub mod series;
 pub mod subject;
 pub mod title;
 
+pub use common::*;
 pub use added_entry::*;
 pub use control::*;
 pub use edition::*;

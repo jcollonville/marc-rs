@@ -1,89 +1,133 @@
+use serde::{Deserialize, Serialize};
+
+use crate::fields::common::*;
 use crate::format::MarcFormat;
+use crate::record::DataField;
 
 /// Linking entry fields (76X-78X in MARC21, 4XX in UNIMARC)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Linking {
-    /// 760 - Main series entry
-    MainSeriesEntry,
-    /// 762 - Subseries entry
-    SubseriesEntry,
-    /// 765 - Original language entry
-    OriginalLanguageEntry,
-    /// 767 - Translation entry
-    TranslationEntry,
-    /// 770 - Supplement/special issue entry
-    SupplementSpecialIssueEntry,
-    /// 772 - Supplement parent entry
-    SupplementParentEntry,
-    /// 773 - Host item entry
-    HostItemEntry,
-    /// 774 - Constituent unit entry
-    ConstituentUnitEntry,
-    /// 775 - Other edition entry
-    OtherEditionEntry,
-    /// 776 - Additional physical form entry
-    AdditionalPhysicalFormEntry,
-    /// 777 - Issued with entry
-    IssuedWithEntry,
-    /// 780 - Preceding entry
-    PrecedingEntry,
-    /// 785 - Succeeding entry
-    SucceedingEntry,
-    /// 786 - Data source entry
-    DataSourceEntry,
-    /// 787 - Other relationship entry
-    OtherRelationshipEntry,
+    MainSeriesEntry(LinkingData),
+    SubseriesEntry(LinkingData),
+    OriginalLanguageEntry(LinkingData),
+    TranslationEntry(LinkingData),
+    SupplementSpecialIssueEntry(LinkingData),
+    SupplementParentEntry(LinkingData),
+    HostItemEntry(LinkingData),
+    ConstituentUnitEntry(LinkingData),
+    OtherEditionEntry(LinkingData),
+    AdditionalPhysicalFormEntry(LinkingData),
+    IssuedWithEntry(LinkingData),
+    PrecedingEntry(LinkingData),
+    SucceedingEntry(LinkingData),
+    DataSourceEntry(LinkingData),
+    OtherRelationshipEntry(LinkingData),
 }
 
 impl Linking {
-    /// Get the tag as string for the given format
     pub fn tag(&self, format: MarcFormat) -> Option<&'static str> {
         match (self, format) {
-            // In UNIMARC, linking entries are in the 4XX block
-            (Linking::MainSeriesEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("760"),
-            (Linking::MainSeriesEntry, MarcFormat::Unimarc) => Some("410"), // Series
-
-            (Linking::SubseriesEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("762"),
-            (Linking::SubseriesEntry, MarcFormat::Unimarc) => Some("411"), // Subseries
-
-            (Linking::OriginalLanguageEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("765"),
-            (Linking::OriginalLanguageEntry, MarcFormat::Unimarc) => Some("454"), // Translation
-
-            (Linking::TranslationEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("767"),
-            (Linking::TranslationEntry, MarcFormat::Unimarc) => Some("454"), // Translation
-
-            (Linking::SupplementSpecialIssueEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("770"),
-            (Linking::SupplementSpecialIssueEntry, MarcFormat::Unimarc) => Some("488"), // Other related title
-
-            (Linking::SupplementParentEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("772"),
-            (Linking::SupplementParentEntry, MarcFormat::Unimarc) => Some("488"), // Other related title
-
-            (Linking::HostItemEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("773"),
-            (Linking::HostItemEntry, MarcFormat::Unimarc) => Some("461"), // Set level
-
-            (Linking::ConstituentUnitEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("774"),
-            (Linking::ConstituentUnitEntry, MarcFormat::Unimarc) => Some("462"), // Subset level
-
-            (Linking::OtherEditionEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("775"),
-            (Linking::OtherEditionEntry, MarcFormat::Unimarc) => Some("453"), // Other edition
-
-            (Linking::AdditionalPhysicalFormEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("776"),
-            (Linking::AdditionalPhysicalFormEntry, MarcFormat::Unimarc) => Some("452"), // Other edition
-
-            (Linking::IssuedWithEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("777"),
-            (Linking::IssuedWithEntry, MarcFormat::Unimarc) => Some("488"), // Other related title
-
-            (Linking::PrecedingEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("780"),
-            (Linking::PrecedingEntry, MarcFormat::Unimarc) => Some("430"), // Continuation of
-
-            (Linking::SucceedingEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("785"),
-            (Linking::SucceedingEntry, MarcFormat::Unimarc) => Some("431"), // Continuation
-
-            (Linking::DataSourceEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("786"),
-            (Linking::DataSourceEntry, MarcFormat::Unimarc) => None, // Not in UNIMARC
-
-            (Linking::OtherRelationshipEntry, MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("787"),
-            (Linking::OtherRelationshipEntry, MarcFormat::Unimarc) => Some("488"), // Other related title
+            (Linking::MainSeriesEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("760"),
+            (Linking::MainSeriesEntry(_), MarcFormat::Unimarc) => Some("410"),
+            (Linking::SubseriesEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("762"),
+            (Linking::SubseriesEntry(_), MarcFormat::Unimarc) => Some("411"),
+            (Linking::OriginalLanguageEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("765"),
+            (Linking::OriginalLanguageEntry(_), MarcFormat::Unimarc) => Some("454"),
+            (Linking::TranslationEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("767"),
+            (Linking::TranslationEntry(_), MarcFormat::Unimarc) => Some("454"),
+            (Linking::SupplementSpecialIssueEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("770"),
+            (Linking::SupplementSpecialIssueEntry(_), MarcFormat::Unimarc) => Some("488"),
+            (Linking::SupplementParentEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("772"),
+            (Linking::SupplementParentEntry(_), MarcFormat::Unimarc) => Some("488"),
+            (Linking::HostItemEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("773"),
+            (Linking::HostItemEntry(_), MarcFormat::Unimarc) => Some("461"),
+            (Linking::ConstituentUnitEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("774"),
+            (Linking::ConstituentUnitEntry(_), MarcFormat::Unimarc) => Some("462"),
+            (Linking::OtherEditionEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("775"),
+            (Linking::OtherEditionEntry(_), MarcFormat::Unimarc) => Some("453"),
+            (Linking::AdditionalPhysicalFormEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("776"),
+            (Linking::AdditionalPhysicalFormEntry(_), MarcFormat::Unimarc) => Some("452"),
+            (Linking::IssuedWithEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("777"),
+            (Linking::IssuedWithEntry(_), MarcFormat::Unimarc) => Some("488"),
+            (Linking::PrecedingEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("780"),
+            (Linking::PrecedingEntry(_), MarcFormat::Unimarc) => Some("430"),
+            (Linking::SucceedingEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("785"),
+            (Linking::SucceedingEntry(_), MarcFormat::Unimarc) => Some("431"),
+            (Linking::DataSourceEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("786"),
+            (Linking::DataSourceEntry(_), MarcFormat::Unimarc) => None,
+            (Linking::OtherRelationshipEntry(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("787"),
+            (Linking::OtherRelationshipEntry(_), MarcFormat::Unimarc) => Some("488"),
         }
+    }
+
+    fn data(&self) -> &LinkingData {
+        match self {
+            Linking::MainSeriesEntry(d)
+            | Linking::SubseriesEntry(d)
+            | Linking::OriginalLanguageEntry(d)
+            | Linking::TranslationEntry(d)
+            | Linking::SupplementSpecialIssueEntry(d)
+            | Linking::SupplementParentEntry(d)
+            | Linking::HostItemEntry(d)
+            | Linking::ConstituentUnitEntry(d)
+            | Linking::OtherEditionEntry(d)
+            | Linking::AdditionalPhysicalFormEntry(d)
+            | Linking::IssuedWithEntry(d)
+            | Linking::PrecedingEntry(d)
+            | Linking::SucceedingEntry(d)
+            | Linking::DataSourceEntry(d)
+            | Linking::OtherRelationshipEntry(d) => d,
+        }
+    }
+
+    pub fn try_parse(
+        tag: &str,
+        ind1: char,
+        ind2: char,
+        subfields: &[(char, String)],
+        format: MarcFormat,
+    ) -> Option<Self> {
+        let d = LinkingData::from_subfields(ind1, ind2, subfields);
+        let link = match (tag, format) {
+            ("760", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::MainSeriesEntry(d),
+            ("762", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::SubseriesEntry(d),
+            ("765", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("454", MarcFormat::Unimarc) => {
+                Linking::OriginalLanguageEntry(d)
+            }
+            ("767", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::TranslationEntry(d),
+            ("770", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::SupplementSpecialIssueEntry(d),
+            ("772", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::SupplementParentEntry(d),
+            ("773", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("461", MarcFormat::Unimarc) => {
+                Linking::HostItemEntry(d)
+            }
+            ("774", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("462", MarcFormat::Unimarc) => {
+                Linking::ConstituentUnitEntry(d)
+            }
+            ("775", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("453", MarcFormat::Unimarc) => {
+                Linking::OtherEditionEntry(d)
+            }
+            ("776", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("452", MarcFormat::Unimarc) => {
+                Linking::AdditionalPhysicalFormEntry(d)
+            }
+            ("777", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("488", MarcFormat::Unimarc) => {
+                Linking::IssuedWithEntry(d)
+            }
+            ("780", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("430", MarcFormat::Unimarc) => {
+                Linking::PrecedingEntry(d)
+            }
+            ("785", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("431", MarcFormat::Unimarc) => {
+                Linking::SucceedingEntry(d)
+            }
+            ("786", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::DataSourceEntry(d),
+            ("787", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::OtherRelationshipEntry(d),
+            _ => return None,
+        };
+        Some(link)
+    }
+
+    pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
+        let tag = self.tag(format)?;
+        let d = self.data();
+        Some(to_data_field(tag, d.ind1, d.ind2, d.to_subfields()))
     }
 }
