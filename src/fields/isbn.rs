@@ -10,18 +10,17 @@ use crate::record::DataField;
 /// One ISBN occurrence. Raw number in `number`; use `sanitized_number()` for digits + X only.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Isbn {
-    /// Original tag: "010" (UNIMARC) or "020" (MARC21).
     pub tag: String,
     pub ind1: char,
     pub ind2: char,
-    /// $a — ISBN as stored (may contain hyphens, spaces, qualification in parentheses).
     pub number: String,
-    /// UNIMARC $b / MARC21 $q — Qualification (e.g. br., rel., paperback).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub qualification: Option<String>,
-    /// UNIMARC $d / MARC21 $c — Price or acquisition terms.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub price_or_acquisition: Option<String>,
-    /// $z — Erroneous or cancelled ISBN (kept for searchability).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cancelled_invalid: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 

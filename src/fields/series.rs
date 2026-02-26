@@ -9,13 +9,18 @@ pub struct SeriesStatementData {
     pub ind1: char,
     pub ind2: char,
     pub statement: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub volume: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub issn: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subseries: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl SeriesStatementData {
-    const KNOWN_CODES: [char; 3] = ['a', 'v', 'x'];
+    const KNOWN_CODES: [char; 4] = ['a', 'i', 'v', 'x'];
 
     fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let statement = get_subfield(subfields, 'a')?;
@@ -25,12 +30,14 @@ impl SeriesStatementData {
             statement,
             volume: get_subfield(subfields, 'v'),
             issn: get_subfield(subfields, 'x'),
+            subseries: get_subfield(subfields, 'i'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
         })
     }
 
     fn to_subfields(&self) -> Vec<(char, String)> {
         let mut out = vec![('a', self.statement.clone())];
+        push_subfield(&mut out, 'i', &self.subseries);
         push_subfield(&mut out, 'v', &self.volume);
         push_subfield(&mut out, 'x', &self.issn);
         out.extend(self.other_subfields.clone());

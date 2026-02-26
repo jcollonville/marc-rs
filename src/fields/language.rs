@@ -11,8 +11,9 @@ use crate::record::DataField;
 pub struct LanguageData {
     pub ind1: char,
     pub ind2: char,
-    /// Language codes ($a repeatable).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub codes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 

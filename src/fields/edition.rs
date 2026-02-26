@@ -9,7 +9,9 @@ pub struct EditionStatementData {
     pub ind1: char,
     pub ind2: char,
     pub edition: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -39,13 +41,20 @@ impl EditionStatementData {
 /// MARC21: 260 or 264 ($a place, $b publisher, $c date). UNIMARC: 210 ($a place, $c publisher, $d date).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationData {
-    /// Original tag: "260", "264" (MARC21) or "210" (UNIMARC).
     pub tag: String,
     pub ind1: char,
     pub ind2: char,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub places: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub publishers: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dates: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub manufacturing_places: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub manufacturing_dates: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -69,16 +78,18 @@ impl PublicationData {
         let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'b').map(|(_, v)| v.clone()).collect();
         let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { tag: String::new(), ind1, ind2, places, publishers, dates, other_subfields }
+        Self { tag: String::new(), ind1, ind2, places, publishers, dates, manufacturing_places: Vec::new(), manufacturing_dates: Vec::new(), other_subfields }
     }
 
     fn from_subfields_210(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
-        const KNOWN: [char; 3] = ['a', 'c', 'd'];
+        const KNOWN: [char; 5] = ['a', 'c', 'd', 'e', 'g'];
         let places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'a').map(|(_, v)| v.clone()).collect();
         let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
         let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'd').map(|(_, v)| v.clone()).collect();
+        let manufacturing_places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'e').map(|(_, v)| v.clone()).collect();
+        let manufacturing_dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'g').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { tag: String::new(), ind1, ind2, places, publishers, dates, other_subfields }
+        Self { tag: String::new(), ind1, ind2, places, publishers, dates, manufacturing_places, manufacturing_dates, other_subfields }
     }
 
     fn to_subfields(&self, _format: MarcFormat) -> Vec<(char, String)> {
@@ -93,6 +104,12 @@ impl PublicationData {
                 }
                 for d in &self.dates {
                     out.push(('d', d.clone()));
+                }
+                for p in &self.manufacturing_places {
+                    out.push(('e', p.clone()));
+                }
+                for d in &self.manufacturing_dates {
+                    out.push(('g', d.clone()));
                 }
             }
             _ => {

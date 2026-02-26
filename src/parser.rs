@@ -4,7 +4,18 @@ use crate::fields::{
     Note, Physical, Series, Specimen, Subject, Title,
 };
 use crate::format::{Encoding, FormatEncoding, MarcFormat};
-use crate::record::{ControlField, DataField, Leader, Record, Subfield};
+use crate::leader::*;
+use crate::record::{ControlField, DataField, Record, Subfield};
+
+/// Result of auto-detection parsing.
+#[derive(Debug, Clone)]
+pub struct ParseResult {
+    pub records: Vec<Record>,
+    /// Detected container/source format (MarcXml, Marc21, or Unimarc).
+    pub format: MarcFormat,
+    /// Semantic format used for field dispatch (Marc21 or Unimarc — never MarcXml).
+    pub semantic_format: MarcFormat,
+}
 
 /// Parse error type
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,20 +45,73 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
-/// Parse MARC records from bytes
-pub fn parse(data: &[u8], format_encoding: FormatEncoding) -> Result<Vec<Record>, ParseError> {
-    match format_encoding.format {
-        MarcFormat::Marc21 => parse_marc21_binary(data, format_encoding),
-        MarcFormat::Unimarc => parse_unimarc_binary(data, format_encoding),
-        MarcFormat::MarcXml => parse_marc_xml(data, format_encoding),
+/// Check if raw data looks like XML (handles optional BOM and leading whitespace).
+fn is_xml_data(data: &[u8]) -> bool {
+    let mut start = 0;
+    // Skip UTF-8 BOM
+    if data.len() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+        start = 3;
+    }
+    let trimmed = match data[start..].iter().position(|&b| !b.is_ascii_whitespace()) {
+        Some(i) => &data[start + i..],
+        None => return false,
+    };
+    trimmed.starts_with(b"<?xml")
+        || trimmed.starts_with(b"<record")
+        || trimmed.starts_with(b"<collection")
+}
+
+/// Detect the MARC format from raw data.
+/// Returns `MarcXml` for XML content, `Marc21` or `Unimarc` for binary content.
+pub fn detect_format(data: &[u8]) -> Result<MarcFormat, ParseError> {
+    if is_xml_data(data) {
+        return Ok(MarcFormat::MarcXml);
+    }
+    if data.len() < 24 {
+        return Err(ParseError::Other(
+            "Data too short to detect format".into(),
+        ));
+    }
+    let leader = Leader::from_bytes(&data[..24]).map_err(ParseError::InvalidLeader)?;
+    let base_address = leader.base_address_of_data as usize;
+    if base_address <= 24 || data.len() < base_address {
+        return Err(ParseError::UnexpectedEof);
+    }
+    let directory = &data[24..base_address];
+    Ok(detect_record_format(data, directory))
+}
+
+/// Detect semantic format (Marc21 vs Unimarc) from XML content by scanning for tag patterns.
+fn detect_xml_semantic_format(data: &[u8]) -> MarcFormat {
+    let text = std::str::from_utf8(data).unwrap_or("");
+    let mut marc21_score: i32 = 0;
+    let mut unimarc_score: i32 = 0;
+
+    if text.contains("tag=\"245\"") { marc21_score += 3; }
+    if text.contains("tag=\"020\"") { marc21_score += 2; }
+    if text.contains("tag=\"650\"") { marc21_score += 2; }
+    if text.contains("tag=\"260\"") { marc21_score += 1; }
+    if text.contains("tag=\"264\"") { marc21_score += 1; }
+    if text.contains("tag=\"300\"") { marc21_score += 1; }
+
+    if text.contains("tag=\"200\"") { unimarc_score += 3; }
+    if text.contains("tag=\"010\"") { unimarc_score += 2; }
+    if text.contains("tag=\"606\"") { unimarc_score += 2; }
+    if text.contains("tag=\"215\"") { unimarc_score += 2; }
+    if text.contains("tag=\"225\"") { unimarc_score += 1; }
+    if text.contains("tag=\"101\"") { unimarc_score += 2; }
+    if text.contains("tag=\"102\"") { unimarc_score += 2; }
+    if text.contains("tag=\"801\"") { unimarc_score += 2; }
+
+    if unimarc_score > marc21_score {
+        MarcFormat::Unimarc
+    } else {
+        MarcFormat::Marc21
     }
 }
 
-/// Parse MARC21 binary format
-pub fn parse_marc21_binary(
-    data: &[u8],
-    format_encoding: FormatEncoding,
-) -> Result<Vec<Record>, ParseError> {
+/// Unified binary parser. If `forced_format` is None, auto-detects per record.
+fn parse_binary(data: &[u8], forced_format: Option<MarcFormat>) -> Result<Vec<Record>, ParseError> {
     let mut records = Vec::new();
     let mut offset = 0;
 
@@ -69,13 +133,86 @@ pub fn parse_marc21_binary(
         }
 
         let record_data = &data[offset..offset + record_length];
-        let record = parse_single_record(record_data, &leader, format_encoding)?;
+        let record = parse_single_record(record_data, &leader, forced_format)?;
         records.push(record);
 
         offset += record_length;
     }
 
     Ok(records)
+}
+
+/// Parse MARC records with automatic format detection.
+///
+/// `forced_format` overrides auto-detection:
+/// - `None` — container (XML/binary) and semantic format (Marc21/Unimarc) are both auto-detected.
+/// - `Some(MarcFormat::MarcXml)` — forces XML parsing; semantic format is auto-detected from tags.
+/// - `Some(MarcFormat::Marc21)` or `Some(MarcFormat::Unimarc)` — forces that semantic format;
+///   container is still auto-detected from content.
+///
+/// Returns a `ParseResult` with records, detected container format, and semantic format.
+pub fn parse_auto(
+    data: &[u8],
+    forced_format: Option<MarcFormat>,
+) -> Result<ParseResult, ParseError> {
+
+
+    let format = detect_format(data)?;
+    let is_xml = is_xml_data(data) || forced_format == Some(MarcFormat::MarcXml);
+
+    if is_xml {
+        let semantic = match forced_format {
+            Some(MarcFormat::Marc21) => MarcFormat::Marc21,
+            Some(MarcFormat::Unimarc) => MarcFormat::Unimarc,
+            _ => detect_xml_semantic_format(data),
+        };
+        let fe = FormatEncoding::new(semantic, Encoding::Utf8);
+        let records = parse_marc_xml(data, fe)?;
+        Ok(ParseResult {
+            records,
+            format: MarcFormat::MarcXml,
+            semantic_format: semantic,
+        })
+    } else {
+        let forced_semantic = match forced_format {
+            Some(f @ (MarcFormat::Marc21 | MarcFormat::Unimarc)) => Some(f),
+            _ => None,
+        };
+        let semantic = match forced_semantic {
+            Some(f) => f,
+            None => {
+                let detected = detect_format(data)?;
+                if detected == MarcFormat::MarcXml {
+                    MarcFormat::Marc21
+                } else {
+                    detected
+                }
+            }
+        };
+        let records = parse_binary(data, forced_semantic)?;
+        Ok(ParseResult {
+            records,
+            format: semantic,
+            semantic_format: semantic,
+        })
+    }
+}
+
+/// Parse MARC records from bytes (legacy API — prefer `parse_auto` for auto-detection).
+pub fn parse(data: &[u8], format_encoding: FormatEncoding) -> Result<Vec<Record>, ParseError> {
+    match format_encoding.format {
+        MarcFormat::Marc21 => parse_marc21_binary(data, format_encoding),
+        MarcFormat::Unimarc => parse_unimarc_binary(data, format_encoding),
+        MarcFormat::MarcXml => parse_marc_xml(data, format_encoding),
+    }
+}
+
+/// Parse MARC21 binary format (legacy — prefer `parse_auto`).
+pub fn parse_marc21_binary(
+    data: &[u8],
+    _format_encoding: FormatEncoding,
+) -> Result<Vec<Record>, ParseError> {
+    parse_binary(data, Some(MarcFormat::Marc21))
 }
 
 /// Detect per-record encoding.
@@ -142,6 +279,46 @@ fn detect_record_encoding(
         return None;
     }
     None
+}
+
+/// Heuristic detection of MARC flavor (MARC21 vs UNIMARC) for a binary record.
+/// Strategy (binary only):
+/// 1. Leader position 9 == 'a' => MARC21 (UTF-8).
+/// 2. Scan directory tags for strong signals:
+///    - UNIMARC: 200, 010, 100 (fixed data), plus other typical tags.
+///    - MARC21: 245 (title), 020 (ISBN).
+/// 3. If ambiguous or no signal, fall back to MARC21.
+fn detect_record_format(record_data: &[u8], directory: &[u8]) -> MarcFormat {
+    // 1. Leader position 9: 'a' => MARC21 UTF-8
+    if record_data.len() > 9 && record_data[9] == b'a' {
+        return MarcFormat::Marc21;
+    }
+
+    // 2. Scan directory for signature tags
+    let mut dir_offset = 0;
+    let mut marc21_hit = false;
+    let mut unimarc_hit = false;
+
+    while dir_offset + 12 <= directory.len() {
+        let tag_bytes = &directory[dir_offset..dir_offset + 3];
+        match tag_bytes {
+            b"200" | b"010" | b"100" | b"215" | b"225" | b"606" | b"607" | b"608" | b"676"
+            | b"801" | b"952" | b"995" | b"101" | b"102" => {
+                unimarc_hit = true;
+            }
+            b"245" | b"020" => {
+                marc21_hit = true;
+            }
+            _ => {}
+        }
+        dir_offset += 12;
+    }
+
+
+    match (marc21_hit, unimarc_hit) {
+        (true, false) => MarcFormat::Marc21,
+        _ => MarcFormat::Unimarc,
+    }
 }
 
 fn parse_unimarc_100a_encoding(value: &[u8]) -> Option<Encoding> {
@@ -295,18 +472,18 @@ fn parse_subfield_bytes(
 fn parse_single_record(
     data: &[u8],
     leader: &Leader,
-    format_encoding: FormatEncoding,
+    forced_format: Option<MarcFormat>,
 ) -> Result<Record, ParseError> {
     if data.len() < leader.base_address_of_data as usize {
         return Err(ParseError::UnexpectedEof);
     }
 
-    let format = format_encoding.format;
-    let record_encoding = detect_record_encoding(data, leader, format);
-
     let base_address = leader.base_address_of_data as usize;
     let directory = &data[24..base_address];
     let data_area = &data[base_address..];
+
+    let format = forced_format.unwrap_or_else(|| detect_record_format(data, directory));
+    let record_encoding = detect_record_encoding(data, leader, format);
 
     let mut record = Record::new(leader.clone());
 
@@ -357,12 +534,12 @@ fn parse_single_record(
     Ok(record)
 }
 
-/// Parse UNIMARC binary format
+/// Parse UNIMARC binary format (legacy — prefer `parse_auto`).
 pub fn parse_unimarc_binary(
     data: &[u8],
-    format_encoding: FormatEncoding,
+    _format_encoding: FormatEncoding,
 ) -> Result<Vec<Record>, ParseError> {
-    parse_marc21_binary(data, format_encoding)
+    parse_binary(data, Some(MarcFormat::Unimarc))
 }
 
 /// Parse MARC XML format
@@ -399,21 +576,21 @@ pub fn parse_marc_xml(
 
     let default_leader = Leader {
         record_length: 0,
-        record_status: ' ',
-        record_type: ' ',
-        bibliographic_level: ' ',
-        type_of_control: ' ',
-        character_coding_scheme: ' ',
+        record_status: RecordStatus::Unknown(' '),
+        record_type: RecordType::Unknown(' '),
+        bibliographic_level: BibliographicLevel::Unknown(' '),
+        type_of_control: TypeOfControl::NoSpecifiedType,
+        character_coding_scheme: CharacterCodingScheme::Marc8OrUnspecified,
         indicator_count: 2,
         subfield_code_count: 2,
         base_address_of_data: 0,
-        encoding_level: ' ',
-        descriptive_cataloging_form: ' ',
-        multipart_resource_record_level: ' ',
+        encoding_level: EncodingLevel::Unknown(' '),
+        descriptive_cataloging_form: DescriptiveCatalogingForm::NonIsbd,
+        multipart_resource_record_level: MultipartResourceRecordLevel::NotSpecifiedOrNotApplicable,
         length_of_length_of_field_portion: 4,
         length_of_starting_character_position_portion: 5,
         length_of_implementation_defined_portion: 0,
-        undefined: ' ',
+        undefined: LeaderUndefined::Blank,
     };
 
     loop {

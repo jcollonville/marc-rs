@@ -9,32 +9,62 @@ pub struct PhysicalDescriptionData {
     pub ind1: char,
     pub ind2: char,
     pub extent: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub other_physical_details: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dimensions: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub accompanying_material: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl PhysicalDescriptionData {
-    const KNOWN_CODES: [char; 4] = ['a', 'b', 'c', 'e'];
+    const KNOWN_MARC21: [char; 4] = ['a', 'b', 'c', 'e'];
+    const KNOWN_UNIMARC: [char; 4] = ['a', 'c', 'd', 'e'];
 
-    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+    fn from_subfields(
+        ind1: char,
+        ind2: char,
+        subfields: &[(char, String)],
+        format: MarcFormat,
+    ) -> Option<Self> {
         let extent = get_subfield(subfields, 'a')?;
+        let (other_physical_details, dimensions, known) = match format {
+            MarcFormat::Unimarc => (
+                get_subfield(subfields, 'c'),
+                get_subfield(subfields, 'd'),
+                &Self::KNOWN_UNIMARC as &[char],
+            ),
+            _ => (
+                get_subfield(subfields, 'b'),
+                get_subfield(subfields, 'c'),
+                &Self::KNOWN_MARC21 as &[char],
+            ),
+        };
         Some(Self {
             ind1,
             ind2,
             extent,
-            other_physical_details: get_subfield(subfields, 'b'),
-            dimensions: get_subfield(subfields, 'c'),
+            other_physical_details,
+            dimensions,
             accompanying_material: get_subfield(subfields, 'e'),
-            other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
+            other_subfields: get_remaining_subfields(subfields, known),
         })
     }
 
-    fn to_subfields(&self) -> Vec<(char, String)> {
+    fn to_subfields(&self, format: MarcFormat) -> Vec<(char, String)> {
         let mut out = vec![('a', self.extent.clone())];
-        push_subfield(&mut out, 'b', &self.other_physical_details);
-        push_subfield(&mut out, 'c', &self.dimensions);
+        match format {
+            MarcFormat::Unimarc => {
+                push_subfield(&mut out, 'c', &self.other_physical_details);
+                push_subfield(&mut out, 'd', &self.dimensions);
+            }
+            _ => {
+                push_subfield(&mut out, 'b', &self.other_physical_details);
+                push_subfield(&mut out, 'c', &self.dimensions);
+            }
+        }
         push_subfield(&mut out, 'e', &self.accompanying_material);
         out.extend(self.other_subfields.clone());
         out
@@ -139,7 +169,7 @@ impl Physical {
     ) -> Option<Self> {
         match (tag, format) {
             ("300", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("215", MarcFormat::Unimarc) => {
-                PhysicalDescriptionData::from_subfields(ind1, ind2, subfields)
+                PhysicalDescriptionData::from_subfields(ind1, ind2, subfields, format)
                     .map(Physical::PhysicalDescription)
             }
             ("306", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
@@ -224,7 +254,7 @@ impl Physical {
     pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
         let tag = self.tag(format)?;
         let df = match self {
-            Physical::PhysicalDescription(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
+            Physical::PhysicalDescription(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields(format)),
             Physical::PlayingTime(d)
             | Physical::Hours(d)
             | Physical::CurrentPublicationFrequency(d)

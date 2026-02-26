@@ -76,13 +76,16 @@
 pub mod encoding;
 pub mod fields;
 pub mod format;
+pub mod leader;
 pub mod parser;
+pub mod auto;
 pub mod record;
 pub mod writer;
 pub mod helpers;
 pub use encoding::*;
 pub use fields::*;
 pub use format::*;
+pub use leader::*;
 pub use parser::*;
 pub use record::*;
 pub use writer::*;

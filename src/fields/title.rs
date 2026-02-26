@@ -9,16 +9,28 @@ pub struct TitleStatementData {
     pub ind1: char,
     pub ind2: char,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub responsibility: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub other_title_info: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_responsibility: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub other_responsibility: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub medium: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub number_of_part: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name_of_part: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl TitleStatementData {
-    const KNOWN_CODES: [char; 6] = ['a', 'b', 'c', 'h', 'n', 'p'];
+    const KNOWN_CODES: [char; 9] = ['a', 'b', 'c', 'e', 'f', 'g', 'h', 'n', 'p'];
 
     fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let title = get_subfield(subfields, 'a')?;
@@ -28,6 +40,9 @@ impl TitleStatementData {
             title,
             remainder: get_subfield(subfields, 'b'),
             responsibility: get_subfield(subfields, 'c'),
+            other_title_info: get_subfield(subfields, 'e'),
+            first_responsibility: get_subfield(subfields, 'f'),
+            other_responsibility: get_subfield(subfields, 'g'),
             medium: get_subfield(subfields, 'h'),
             number_of_part: get_subfield(subfields, 'n'),
             name_of_part: get_subfield(subfields, 'p'),
@@ -39,6 +54,9 @@ impl TitleStatementData {
         let mut out = vec![('a', self.title.clone())];
         push_subfield(&mut out, 'b', &self.remainder);
         push_subfield(&mut out, 'c', &self.responsibility);
+        push_subfield(&mut out, 'e', &self.other_title_info);
+        push_subfield(&mut out, 'f', &self.first_responsibility);
+        push_subfield(&mut out, 'g', &self.other_responsibility);
         push_subfield(&mut out, 'h', &self.medium);
         push_subfield(&mut out, 'n', &self.number_of_part);
         push_subfield(&mut out, 'p', &self.name_of_part);
@@ -52,7 +70,9 @@ pub struct TitleData {
     pub ind1: char,
     pub ind2: char,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 

@@ -78,17 +78,28 @@ pub struct PersonalNameData {
     pub ind1: char,
     pub ind2: char,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub numeration: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub titles: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dates: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_term: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fuller_form: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authority_number: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dates_of_work: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl PersonalNameData {
-    const KNOWN_CODES: [char; 7] = ['a', 'b', 'c', 'd', 'e', 'q', '4'];
+    const KNOWN_CODES: [char; 9] = ['a', 'b', 'c', 'd', 'e', 'f', 'q', '3', '4'];
 
     pub fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let name = get_subfield(subfields, 'a')?;
@@ -102,6 +113,8 @@ impl PersonalNameData {
             relator_term: get_subfield(subfields, 'e'),
             fuller_form: get_subfield(subfields, 'q'),
             relator_code: get_subfield(subfields, '4'),
+            authority_number: get_subfield(subfields, '3'),
+            dates_of_work: get_subfield(subfields, 'f'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
         })
     }
@@ -112,7 +125,9 @@ impl PersonalNameData {
         push_subfield(&mut out, 'c', &self.titles);
         push_subfield(&mut out, 'd', &self.dates);
         push_subfield(&mut out, 'e', &self.relator_term);
+        push_subfield(&mut out, 'f', &self.dates_of_work);
         push_subfield(&mut out, 'q', &self.fuller_form);
+        push_subfield(&mut out, '3', &self.authority_number);
         push_subfield(&mut out, '4', &self.relator_code);
         out.extend(self.other_subfields.clone());
         out
@@ -124,11 +139,17 @@ pub struct CorporateNameData {
     pub ind1: char,
     pub ind2: char,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subordinate_unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_term: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -167,10 +188,15 @@ pub struct MeetingNameData {
     pub ind1: char,
     pub ind2: char,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subordinate_unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub number: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -207,11 +233,17 @@ pub struct UniformTitleData {
     pub ind1: char,
     pub ind2: char,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date_of_work: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name_of_part: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -251,6 +283,7 @@ pub struct NoteData {
     pub ind1: char,
     pub ind2: char,
     pub text: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
@@ -278,16 +311,26 @@ pub struct SubjectData {
     pub ind1: char,
     pub ind2: char,
     pub term: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name_subdivision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub form_subdivision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub general_subdivision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub chronological_subdivision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub geographic_subdivision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authority_number: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl SubjectData {
-    const KNOWN_CODES: [char; 6] = ['a', 'v', 'x', 'y', 'z', '2'];
+    const KNOWN_CODES: [char; 8] = ['a', 'b', 'v', 'x', 'y', 'z', '2', '3'];
 
     pub fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let term = get_subfield(subfields, 'a')?;
@@ -295,22 +338,26 @@ impl SubjectData {
             ind1,
             ind2,
             term,
+            name_subdivision: get_subfield(subfields, 'b'),
             form_subdivision: get_subfield(subfields, 'v'),
             general_subdivision: get_subfield(subfields, 'x'),
             chronological_subdivision: get_subfield(subfields, 'y'),
             geographic_subdivision: get_subfield(subfields, 'z'),
             source: get_subfield(subfields, '2'),
+            authority_number: get_subfield(subfields, '3'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
         })
     }
 
     pub fn to_subfields(&self) -> Vec<(char, String)> {
         let mut out = vec![('a', self.term.clone())];
+        push_subfield(&mut out, 'b', &self.name_subdivision);
         push_subfield(&mut out, 'v', &self.form_subdivision);
         push_subfield(&mut out, 'x', &self.general_subdivision);
         push_subfield(&mut out, 'y', &self.chronological_subdivision);
         push_subfield(&mut out, 'z', &self.geographic_subdivision);
         push_subfield(&mut out, '2', &self.source);
+        push_subfield(&mut out, '3', &self.authority_number);
         out.extend(self.other_subfields.clone());
         out
     }
@@ -321,15 +368,22 @@ impl SubjectData {
 pub struct LinkingData {
     pub ind1: char,
     pub ind2: char,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub record_control_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub issn: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub isbn: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub volume: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl LinkingData {
-    const KNOWN_CODES: [char; 4] = ['t', 'w', 'x', 'z'];
+    const KNOWN_CODES: [char; 5] = ['t', 'v', 'w', 'x', 'z'];
 
     pub fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
         Self {
@@ -339,6 +393,7 @@ impl LinkingData {
             record_control_number: get_subfield(subfields, 'w'),
             issn: get_subfield(subfields, 'x'),
             isbn: get_subfield(subfields, 'z'),
+            volume: get_subfield(subfields, 'v'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
         }
     }
@@ -346,6 +401,7 @@ impl LinkingData {
     pub fn to_subfields(&self) -> Vec<(char, String)> {
         let mut out = Vec::new();
         push_subfield(&mut out, 't', &self.title);
+        push_subfield(&mut out, 'v', &self.volume);
         push_subfield(&mut out, 'w', &self.record_control_number);
         push_subfield(&mut out, 'x', &self.issn);
         push_subfield(&mut out, 'z', &self.isbn);

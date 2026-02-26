@@ -9,16 +9,16 @@ use crate::record::DataField;
 /// Dewey Decimal Classification — 082 (primary) or 083 (additional) in MARC21, 676 in UNIMARC.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DeweyClassification {
-    /// Original tag: "082", "083" (MARC21) or "676" (UNIMARC).
     pub tag: String,
     pub ind1: char,
     pub ind2: char,
-    /// Classification number(s) — $a repeatable.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub numbers: Vec<String>,
-    /// Item number — $b (082).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub item_number: Option<String>,
-    /// Edition — $2 (082/083) or $v (676 UNIMARC).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edition: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 

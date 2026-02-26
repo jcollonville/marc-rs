@@ -5,26 +5,43 @@ use crate::fields::{
     Note, Physical, Series, Specimen, Subject, Title,
 };
 use crate::fields::common::{CorporateNameData, MeetingNameData, PersonalNameData};
+use crate::leader::*;
 
 /// MARC record structure with typed fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Record {
     leader: Leader,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     control: Vec<Control>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     isbns: Vec<Isbn>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     titles: Vec<Title>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     main_entries: Vec<MainEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     editions: Vec<Edition>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     physical: Vec<Physical>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     series: Vec<Series>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     notes: Vec<Note>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     subjects: Vec<Subject>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     added_entries: Vec<AddedEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     linking: Vec<Linking>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     specimens: Vec<Specimen>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     classifications: Vec<DeweyClassification>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     languages: Vec<LanguageData>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     other_control: Vec<ControlField>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     other_data: Vec<DataField>,
 }
 
@@ -42,22 +59,24 @@ pub struct Author {
     pub kind: AuthorKind,
     /// Display form: "Name, dates" for personal; full form for corporate/meeting.
     pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_term: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub relator_code: Option<String>,
 }
 
 /// Aggregated edition and publication info (250/205 + 260/264/210).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EditionInfo {
-    /// Edition statement (250 MARC21, 205 UNIMARC).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub edition_statement: Option<String>,
-    /// Place of publication (first from 260/264/210).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub place: Option<String>,
-    /// Publisher (first from 260/264/210).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub publisher: Option<String>,
-    /// Date of publication (first from 260/264/210).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<String>,
-    /// All publication statements (260, 264, 210) for full detail.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub publication_statements: Vec<PublicationStatementInfo>,
 }
 
@@ -65,8 +84,11 @@ pub struct EditionInfo {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationStatementInfo {
     pub tag: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub place: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub publisher: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<String>,
 }
 
@@ -408,88 +430,6 @@ fn meeting_display_name(d: &MeetingNameData) -> String {
     s
 }
 
-/// MARC leader (24 bytes)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Leader {
-    pub record_length: u16,
-    pub record_status: char,
-    pub record_type: char,
-    pub bibliographic_level: char,
-    pub type_of_control: char,
-    pub character_coding_scheme: char,
-    pub indicator_count: u8,
-    pub subfield_code_count: u8,
-    pub base_address_of_data: u16,
-    pub encoding_level: char,
-    pub descriptive_cataloging_form: char,
-    pub multipart_resource_record_level: char,
-    pub length_of_length_of_field_portion: u8,
-    pub length_of_starting_character_position_portion: u8,
-    pub length_of_implementation_defined_portion: u8,
-    pub undefined: char,
-}
-
-impl Leader {
-    pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
-        if data.len() != 24 {
-            return Err(format!("Leader must be 24 bytes, got {}", data.len()));
-        }
-
-        let record_length = parse_u16(&data[0..5])?;
-        let base_address = parse_u16(&data[12..17])?;
-
-        Ok(Leader {
-            record_length,
-            record_status: data[5] as char,
-            record_type: data[6] as char,
-            bibliographic_level: data[7] as char,
-            type_of_control: data[8] as char,
-            character_coding_scheme: data[9] as char,
-            indicator_count: data[10] - b'0',
-            subfield_code_count: data[11] - b'0',
-            base_address_of_data: base_address,
-            encoding_level: data[17] as char,
-            descriptive_cataloging_form: data[18] as char,
-            multipart_resource_record_level: data[19] as char,
-            length_of_length_of_field_portion: data[20] - b'0',
-            length_of_starting_character_position_portion: data[21] - b'0',
-            length_of_implementation_defined_portion: data[22] - b'0',
-            undefined: data[23] as char,
-        })
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0u8; 24];
-        let record_length_str = format!("{:05}", self.record_length);
-        let base_address_str = format!("{:05}", self.base_address_of_data);
-
-        bytes[0..5].copy_from_slice(record_length_str.as_bytes());
-        bytes[5] = self.record_status as u8;
-        bytes[6] = self.record_type as u8;
-        bytes[7] = self.bibliographic_level as u8;
-        bytes[8] = self.type_of_control as u8;
-        bytes[9] = self.character_coding_scheme as u8;
-        bytes[10] = b'0' + self.indicator_count;
-        bytes[11] = b'0' + self.subfield_code_count;
-        bytes[12..17].copy_from_slice(base_address_str.as_bytes());
-        bytes[17] = self.encoding_level as u8;
-        bytes[18] = self.descriptive_cataloging_form as u8;
-        bytes[19] = self.multipart_resource_record_level as u8;
-        bytes[20] = b'0' + self.length_of_length_of_field_portion;
-        bytes[21] = b'0' + self.length_of_starting_character_position_portion;
-        bytes[22] = b'0' + self.length_of_implementation_defined_portion;
-        bytes[23] = self.undefined as u8;
-
-        bytes
-    }
-}
-
-fn parse_u16(bytes: &[u8]) -> Result<u16, String> {
-    let s = std::str::from_utf8(bytes).map_err(|e| format!("Invalid UTF-8: {}", e))?;
-    s.parse::<u16>()
-        .map_err(|e| format!("Invalid number: {}", e))
-}
-
 /// Raw control field (001-009) — used for the "other" bucket and writing
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlField {
@@ -503,6 +443,7 @@ pub struct DataField {
     pub tag: String,
     pub ind1: char,
     pub ind2: char,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub subfields: Vec<Subfield>,
 }
 

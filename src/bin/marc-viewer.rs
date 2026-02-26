@@ -9,15 +9,25 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        eprintln!("Usage: {} <marc-file> [output-format]", args[0]);
+        eprintln!(
+            "Usage: {} <marc-file> [output-format] [input-format]",
+            args[0]
+        );
         eprintln!("  output-format: plain, json, marc-xml, marc, or unimarc (default: plain). All output is UTF-8.");
+        eprintln!("  input-format:  marc21, unimarc, or marcxml (default: auto-detect).");
         std::process::exit(1);
     }
 
     let file_path = &args[1];
     let output_format = args.get(2).map(|s| s.as_str()).unwrap_or("plain");
+    let forced_input: Option<MarcFormat> = args.get(3).map(|s| match s.to_lowercase().as_str() {
+        "marc21" | "marc" => MarcFormat::Marc21,
+        "unimarc" => MarcFormat::Unimarc,
+        "marcxml" | "marc-xml" | "xml" => MarcFormat::MarcXml,
+        _ => MarcFormat::from(s.as_str()),
+    });
 
-    match view_marc_file(file_path, output_format) {
+    match view_marc_file(file_path, output_format, forced_input) {
         Ok(()) => {}
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -29,6 +39,7 @@ fn main() {
 fn view_marc_file(
     file_path: &str,
     output_format: &str,
+    forced_input: Option<MarcFormat>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(file_path);
 
@@ -40,9 +51,10 @@ fn view_marc_file(
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
-    let format_encoding = detect_format_encoding(&buffer)?;
-
-    let records = parse(&buffer, format_encoding)?;
+    let result = parse_auto(&buffer, forced_input)?;
+    let records = result.records;
+    let detected_format = result.format;
+    let semantic_format = result.semantic_format;
 
     if records.is_empty() {
         eprintln!("No records found in file.");
@@ -52,7 +64,14 @@ fn view_marc_file(
     match output_format.to_lowercase().as_str() {
         "plain" => {
             println!("File: {}", file_path);
-            println!("Format: {:?} (output UTF-8)", format_encoding.format);
+            if detected_format == MarcFormat::MarcXml {
+                println!(
+                    "Format: MarcXml (semantic: {:?}, output UTF-8)",
+                    semantic_format
+                );
+            } else {
+                println!("Format: {:?} (output UTF-8)", detected_format);
+            }
             println!("{}", "=".repeat(80));
             println!("Found {} record(s)\n", records.len());
 
@@ -62,7 +81,7 @@ fn view_marc_file(
                     println!("Record #{}", idx + 1);
                     println!("{}", "─".repeat(80));
                 }
-                display_record(record, format_encoding.format);
+                display_record(record, semantic_format);
                 if idx < records.len() - 1 {
                     println!();
                 }
@@ -107,20 +126,6 @@ fn view_marc_file(
     Ok(())
 }
 
-fn detect_format_encoding(buffer: &[u8]) -> Result<FormatEncoding, String> {
-    let format = if buffer.starts_with(b"<?xml")
-        || buffer.starts_with(b"<record")
-        || buffer.starts_with(b"<collection")
-    {
-        MarcFormat::MarcXml
-    } else if buffer.len() >= 24 {
-        MarcFormat::Marc21
-    } else {
-        return Err("Cannot detect format from file content.".to_string());
-    };
-    Ok(FormatEncoding::new(format, Encoding::Utf8))
-}
-
 fn display_record(record: &Record, format: MarcFormat) {
     let leader = record.leader();
     println!("LEADER");
@@ -149,7 +154,6 @@ fn display_record(record: &Record, format: MarcFormat) {
     );
     println!();
 
-    // Control fields
     let has_control = !record.control().is_empty() || !record.other_control().is_empty();
     if has_control {
         println!("CONTROL FIELDS");
@@ -164,7 +168,6 @@ fn display_record(record: &Record, format: MarcFormat) {
         println!();
     }
 
-    // Data fields: collect all into raw and display
     let (_, data_fields) = crate::writer::collect_raw_fields(record, format);
 
     if !data_fields.is_empty() {
