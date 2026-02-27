@@ -80,7 +80,7 @@ impl Subject {
         subfields: &[(char, String)],
         format: MarcFormat,
     ) -> Option<Self> {
-        let d = SubjectData::from_subfields(ind1, ind2, subfields)?;
+        let d = SubjectData::from_subfields(ind1, ind2, subfields, format)?;
         let subj = match (tag, format) {
             ("600", _) => Subject::SubjectPersonalName(d),
             ("610", MarcFormat::Marc21 | MarcFormat::MarcXml) => Subject::SubjectCorporateName(d),
@@ -110,6 +110,6 @@ impl Subject {
     pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
         let tag = self.tag(format)?;
         let d = self.data();
-        Some(to_data_field(tag, d.ind1, d.ind2, d.to_subfields()))
+        Some(to_data_field(tag, ' ', d.thesaurus.to_ind2(), d.to_subfields()))
     }
 }

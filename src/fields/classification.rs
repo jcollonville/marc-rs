@@ -11,16 +11,10 @@ use crate::record::DataField;
 pub struct DeweyClassification {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub is_additional: bool,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    #[serde(default)]
+    pub edition_type: DeweyEditionType,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assigned_by_lc: Option<bool>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub numbers: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -65,12 +59,21 @@ impl DeweyClassification {
         } else {
             (get_subfield(subfields, 'b'), &Self::KNOWN_082_083[..])
         };
+        let edition_type = match format {
+            MarcFormat::Marc21 | MarcFormat::MarcXml => DeweyEditionType::from_ind1(ind1),
+            MarcFormat::Unimarc => DeweyEditionType::Full,
+        };
+        let assigned_by_lc = match (format, ind2) {
+            (MarcFormat::Marc21 | MarcFormat::MarcXml, '0') => Some(true),
+            (MarcFormat::Marc21 | MarcFormat::MarcXml, '4') => Some(false),
+            _ => None,
+        };
         let edition = get_subfield(subfields, edition_code);
         let other_subfields = get_remaining_subfields(subfields, known);
         Some(Self {
             is_additional: tag == "083",
-            ind1,
-            ind2,
+            edition_type,
+            assigned_by_lc,
             numbers,
             item_number,
             edition,
@@ -99,6 +102,15 @@ impl DeweyClassification {
                 if self.is_additional { "083" } else { "082" }
             }
         };
-        to_data_field(tag, self.ind1, self.ind2, self.to_subfields(format))
+        let ind1 = match format {
+            MarcFormat::Marc21 | MarcFormat::MarcXml => self.edition_type.to_ind1(),
+            MarcFormat::Unimarc => ' ',
+        };
+        let ind2 = match (format, self.assigned_by_lc) {
+            (MarcFormat::Marc21 | MarcFormat::MarcXml, Some(true)) => '0',
+            (MarcFormat::Marc21 | MarcFormat::MarcXml, Some(false)) => '4',
+            _ => ' ',
+        };
+        to_data_field(tag, ind1, ind2, self.to_subfields(format))
     }
 }

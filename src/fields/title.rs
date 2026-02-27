@@ -7,15 +7,12 @@ use crate::record::DataField;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TitleStatementData {
     #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
+        default = "crate::fields::common::default_true",
+        skip_serializing_if = "crate::fields::common::is_true"
     )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    pub title_added_entry: bool,
+    #[serde(default, skip_serializing_if = "crate::fields::common::is_zero")]
+    pub nonfiling_chars: u8,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
@@ -43,8 +40,8 @@ impl TitleStatementData {
     fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let title = get_subfield(subfields, 'a')?;
         Some(Self {
-            ind1,
-            ind2,
+            title_added_entry: ind1 != '0',
+            nonfiling_chars: ind_to_nonfiling_chars(ind2),
             title,
             remainder: get_subfield(subfields, 'b'),
             responsibility: get_subfield(subfields, 'c'),
@@ -75,16 +72,8 @@ impl TitleStatementData {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TitleData {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    #[serde(default, skip_serializing_if = "crate::fields::common::is_zero")]
+    pub nonfiling_chars: u8,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
@@ -95,11 +84,10 @@ pub struct TitleData {
 impl TitleData {
     const KNOWN_CODES: [char; 2] = ['a', 'b'];
 
-    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+    fn from_subfields(ind2: char, subfields: &[(char, String)]) -> Option<Self> {
         let title = get_subfield(subfields, 'a')?;
         Some(Self {
-            ind1,
-            ind2,
+            nonfiling_chars: ind_to_nonfiling_chars(ind2),
             title,
             remainder: get_subfield(subfields, 'b'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
@@ -160,21 +148,21 @@ impl Title {
                     .map(Title::TitleStatement)
             }
             ("246", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                TitleData::from_subfields(ind1, ind2, subfields)
+                TitleData::from_subfields(ind2, subfields)
                     .map(Title::VaryingFormOfTitle)
             }
             ("247", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                TitleData::from_subfields(ind1, ind2, subfields).map(Title::FormerTitle)
+                TitleData::from_subfields(ind2, subfields).map(Title::FormerTitle)
             }
             ("510", MarcFormat::Unimarc) => {
-                TitleData::from_subfields(ind1, ind2, subfields).map(Title::ParallelTitle)
+                TitleData::from_subfields(ind2, subfields).map(Title::ParallelTitle)
             }
             ("517", MarcFormat::Unimarc) => {
-                TitleData::from_subfields(ind1, ind2, subfields)
+                TitleData::from_subfields(ind2, subfields)
                     .map(Title::VaryingFormOfTitle)
             }
             ("520", MarcFormat::Unimarc) => {
-                TitleData::from_subfields(ind1, ind2, subfields).map(Title::FormerTitle)
+                TitleData::from_subfields(ind2, subfields).map(Title::FormerTitle)
             }
             _ => None,
         }
@@ -185,13 +173,21 @@ impl Title {
         let tag = self.tag(format);
         match self {
             Title::TitleStatement(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+                let ind1 = if d.title_added_entry { '1' } else { '0' };
+                let ind2 = nonfiling_chars_to_ind(d.nonfiling_chars);
+                to_data_field(tag, ind1, ind2, d.to_subfields())
             }
-            Title::VaryingFormOfTitle(d)
-            | Title::FormerTitle(d)
-            | Title::ParallelTitle(d)
-            | Title::OtherTitleInformation(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+            Title::VaryingFormOfTitle(d) => {
+                to_data_field(tag, '1', nonfiling_chars_to_ind(d.nonfiling_chars), d.to_subfields())
+            }
+            Title::FormerTitle(d) => {
+                to_data_field(tag, '0', nonfiling_chars_to_ind(d.nonfiling_chars), d.to_subfields())
+            }
+            Title::ParallelTitle(d) => {
+                to_data_field(tag, '1', nonfiling_chars_to_ind(d.nonfiling_chars), d.to_subfields())
+            }
+            Title::OtherTitleInformation(d) => {
+                to_data_field(tag, '1', nonfiling_chars_to_ind(d.nonfiling_chars), d.to_subfields())
             }
         }
     }

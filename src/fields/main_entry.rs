@@ -41,19 +41,19 @@ impl MainEntry {
     ) -> Option<Self> {
         match (tag, format) {
             ("100", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("700", MarcFormat::Unimarc) => {
-                PersonalNameData::from_subfields(ind1, ind2, subfields)
+                PersonalNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(MainEntry::PersonalName)
             }
             ("110", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("710", MarcFormat::Unimarc) => {
-                CorporateNameData::from_subfields(ind1, ind2, subfields)
+                CorporateNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(MainEntry::CorporateName)
             }
             ("111", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("711", MarcFormat::Unimarc) => {
-                MeetingNameData::from_subfields(ind1, ind2, subfields)
+                MeetingNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(MainEntry::MeetingName)
             }
             ("130", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("730", MarcFormat::Unimarc) => {
-                UniformTitleData::from_subfields(ind1, ind2, subfields)
+                UniformTitleData::from_subfields(ind1, ind2, subfields, format)
                     .map(MainEntry::UniformTitle)
             }
             _ => None,
@@ -63,10 +63,18 @@ impl MainEntry {
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
         let tag = self.tag(format);
         match self {
-            MainEntry::PersonalName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            MainEntry::CorporateName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            MainEntry::MeetingName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            MainEntry::UniformTitle(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
+            MainEntry::PersonalName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            MainEntry::CorporateName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            MainEntry::MeetingName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            MainEntry::UniformTitle(d) => {
+                to_data_field(tag, nonfiling_chars_to_ind(d.nonfiling_chars), ' ', d.to_subfields())
+            }
         }
     }
 }

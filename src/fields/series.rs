@@ -6,16 +6,8 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SeriesStatementData {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub traced: bool,
     pub statement: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub volume: Option<String>,
@@ -30,11 +22,10 @@ pub struct SeriesStatementData {
 impl SeriesStatementData {
     const KNOWN_CODES: [char; 4] = ['a', 'i', 'v', 'x'];
 
-    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+    fn from_subfields(ind1: char, subfields: &[(char, String)]) -> Option<Self> {
         let statement = get_subfield(subfields, 'a')?;
         Some(Self {
-            ind1,
-            ind2,
+            traced: ind1 == '1',
             statement,
             volume: get_subfield(subfields, 'v'),
             issn: get_subfield(subfields, 'x'),
@@ -92,23 +83,23 @@ impl Series {
     ) -> Option<Self> {
         match (tag, format) {
             ("400", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                PersonalNameData::from_subfields(ind1, ind2, subfields)
+                PersonalNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(Series::SeriesPersonalName)
             }
             ("410", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                CorporateNameData::from_subfields(ind1, ind2, subfields)
+                CorporateNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(Series::SeriesCorporateName)
             }
             ("411", _) => {
-                MeetingNameData::from_subfields(ind1, ind2, subfields)
+                MeetingNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(Series::SeriesMeetingName)
             }
             ("440", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                SeriesStatementData::from_subfields(ind1, ind2, subfields)
+                SeriesStatementData::from_subfields(ind1, subfields)
                     .map(Series::SeriesTitle)
             }
             ("490", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("225", MarcFormat::Unimarc) => {
-                SeriesStatementData::from_subfields(ind1, ind2, subfields)
+                SeriesStatementData::from_subfields(ind1, subfields)
                     .map(Series::SeriesStatement)
             }
             _ => None,
@@ -118,11 +109,18 @@ impl Series {
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
         let tag = self.tag(format);
         match self {
-            Series::SeriesPersonalName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            Series::SeriesCorporateName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            Series::SeriesMeetingName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
+            Series::SeriesPersonalName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            Series::SeriesCorporateName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            Series::SeriesMeetingName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
             Series::SeriesTitle(d) | Series::SeriesStatement(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+                let ind1 = if d.traced { '1' } else { '0' };
+                to_data_field(tag, ind1, ' ', d.to_subfields())
             }
         }
     }

@@ -6,16 +6,6 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PhysicalDescriptionData {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
     pub extent: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_physical_details: Option<String>,
@@ -32,8 +22,6 @@ impl PhysicalDescriptionData {
     const KNOWN_UNIMARC: [char; 4] = ['a', 'c', 'd', 'e'];
 
     fn from_subfields(
-        ind1: char,
-        ind2: char,
         subfields: &[(char, String)],
         format: MarcFormat,
     ) -> Option<Self> {
@@ -51,8 +39,6 @@ impl PhysicalDescriptionData {
             ),
         };
         Some(Self {
-            ind1,
-            ind2,
             extent,
             other_physical_details,
             dimensions,
@@ -178,83 +164,83 @@ impl Physical {
     ) -> Option<Self> {
         match (tag, format) {
             ("300", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("215", MarcFormat::Unimarc) => {
-                PhysicalDescriptionData::from_subfields(ind1, ind2, subfields, format)
+                PhysicalDescriptionData::from_subfields(subfields, format)
                     .map(Physical::PhysicalDescription)
             }
             ("306", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::PlayingTime)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::PlayingTime)
             }
             ("307", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::Hours)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::Hours)
             }
             ("310", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("326", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::CurrentPublicationFrequency)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::CurrentPublicationFrequency)
             }
             ("321", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::FormerPublicationFrequency)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::FormerPublicationFrequency)
             }
             ("340", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::PhysicalMedium)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::PhysicalMedium)
             }
             ("342", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::GeospatialReferenceData)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::GeospatialReferenceData)
             }
             ("343", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::PlanarCoordinateData)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::PlanarCoordinateData)
             }
             ("351", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("327", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::OrganizationAndArrangement)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::OrganizationAndArrangement)
             }
             ("352", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::DigitalGraphicRepresentation)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::DigitalGraphicRepresentation)
             }
             ("355", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::SecurityClassificationControl)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::SecurityClassificationControl)
             }
             ("357", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::OriginatorDisseminationControl)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::OriginatorDisseminationControl)
             }
             ("362", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("210", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::DatesOfPublication)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::DatesOfPublication)
             }
             ("363", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::NormalizedDate)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::NormalizedDate)
             }
             ("365", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::TradePrice)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::TradePrice)
             }
             ("366", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::TradeAvailabilityInformation)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::TradeAvailabilityInformation)
             }
             ("370", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("620", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::AssociatedPlace)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::AssociatedPlace)
             }
             ("377", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("101", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::AssociatedLanguage)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::AssociatedLanguage)
             }
             ("380", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("608", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::FormOfWork)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::FormOfWork)
             }
             ("381", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::OtherDistinguishingCharacteristics)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::OtherDistinguishingCharacteristics)
             }
             ("382", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("128", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::MediumOfPerformance)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::MediumOfPerformance)
             }
             ("383", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("125", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::NumericDesignationOfMusicalWork)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::NumericDesignationOfMusicalWork)
             }
             ("384", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::Key)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::Key)
             }
             ("385", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("330", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::AudienceCharacteristics)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::AudienceCharacteristics)
             }
             ("386", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::CreatorContributorCharacteristics)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::CreatorContributorCharacteristics)
             }
             ("388", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("660", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields).map(Physical::TimePeriodOfCreation)
+                NoteData::from_subfields(ind1, ind2, subfields, format).map(Physical::TimePeriodOfCreation)
             }
             _ => None,
         }
@@ -263,7 +249,7 @@ impl Physical {
     pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
         let tag = self.tag(format)?;
         let df = match self {
-            Physical::PhysicalDescription(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields(format)),
+            Physical::PhysicalDescription(d) => to_data_field(tag, ' ', ' ', d.to_subfields(format)),
             Physical::PlayingTime(d)
             | Physical::Hours(d)
             | Physical::CurrentPublicationFrequency(d)
@@ -289,7 +275,7 @@ impl Physical {
             | Physical::AudienceCharacteristics(d)
             | Physical::CreatorContributorCharacteristics(d)
             | Physical::TimePeriodOfCreation(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+                to_data_field(tag, ' ', ' ', d.to_subfields())
             }
         };
         Some(df)

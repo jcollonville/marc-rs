@@ -48,8 +48,8 @@ fn test_record_creation() {
     let mut record = Record::new(leader);
     record.push_control(Control::ControlNumber("12345".to_string()));
     record.push_title(Title::TitleStatement(TitleStatementData {
-        ind1: '1',
-        ind2: '0',
+        title_added_entry: true,
+        nonfiling_chars: 0,
         title: "Test title".to_string(),
         remainder: None,
         responsibility: None,
@@ -99,8 +99,7 @@ fn test_leader_to_from_bytes() {
 fn test_field_tag_mappings() {
     // MARC21
     let me = MainEntry::PersonalName(PersonalNameData {
-        ind1: '1',
-        ind2: ' ',
+        name_type: PersonalNameType::Surname,
         name: "Test".to_string(),
         numeration: None,
         titles: None,
@@ -116,8 +115,8 @@ fn test_field_tag_mappings() {
     assert_eq!(me.tag(MarcFormat::Unimarc), "700");
 
     let ts = Title::TitleStatement(TitleStatementData {
-        ind1: '1',
-        ind2: '0',
+        title_added_entry: true,
+        nonfiling_chars: 0,
         title: "Test".to_string(),
         remainder: None,
         responsibility: None,

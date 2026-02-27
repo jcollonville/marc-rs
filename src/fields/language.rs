@@ -86,16 +86,8 @@ impl<'de> Deserialize<'de> for LanguageCode {
 /// Language codes — 041 (MARC21). $a repeatable (main language codes).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LanguageData {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_translation: Option<bool>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub codes: Vec<LanguageCode>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -108,7 +100,7 @@ impl LanguageData {
     pub fn try_parse(
         tag: &str,
         ind1: char,
-        ind2: char,
+        _ind2: char,
         subfields: &[(char, String)],
         format: MarcFormat,
     ) -> Option<Self> {
@@ -121,10 +113,14 @@ impl LanguageData {
             .filter(|(c, _)| *c == 'a')
             .map(|(_, v)| LanguageCode::from_code(v))
             .collect();
+        let is_translation = match ind1 {
+            '0' => Some(false),
+            '1' => Some(true),
+            _ => None,
+        };
         let other_subfields = get_remaining_subfields(subfields, &Self::KNOWN_CODES);
         Some(Self {
-            ind1,
-            ind2,
+            is_translation,
             codes,
             other_subfields,
         })
@@ -140,7 +136,12 @@ impl LanguageData {
     }
 
     pub fn to_raw(&self, _format: MarcFormat) -> DataField {
-        to_data_field("041", self.ind1, self.ind2, self.to_subfields())
+        let ind1 = match self.is_translation {
+            Some(false) => '0',
+            Some(true) => '1',
+            None => ' ',
+        };
+        to_data_field("041", ind1, ' ', self.to_subfields())
     }
 
     pub fn push_language(&mut self, lang: LanguageCode) {

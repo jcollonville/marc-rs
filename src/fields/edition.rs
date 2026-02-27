@@ -6,16 +6,6 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EditionStatementData {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
     pub edition: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
@@ -26,11 +16,9 @@ pub struct EditionStatementData {
 impl EditionStatementData {
     const KNOWN_CODES: [char; 2] = ['a', 'b'];
 
-    fn from_subfields(ind1: char, ind2: char, subfields: &[(char, String)]) -> Option<Self> {
+    fn from_subfields(subfields: &[(char, String)]) -> Option<Self> {
         let edition = get_subfield(subfields, 'a')?;
         Some(Self {
-            ind1,
-            ind2,
             edition,
             remainder: get_subfield(subfields, 'b'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
@@ -51,16 +39,8 @@ impl EditionStatementData {
 pub struct PublicationData {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub is_rda: bool,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub function: Option<PublicationFunction>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub places: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -89,16 +69,25 @@ impl PublicationData {
         self.dates.first().map(String::as_str)
     }
 
-    fn from_subfields_260_264(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
+    fn from_subfields_260_264(ind2: char, subfields: &[(char, String)]) -> Self {
         const KNOWN: [char; 3] = ['a', 'b', 'c'];
         let places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'a').map(|(_, v)| v.clone()).collect();
         let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'b').map(|(_, v)| v.clone()).collect();
         let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { is_rda: false, ind1, ind2, places, publishers, dates, manufacturing_places: Vec::new(), manufacturing_dates: Vec::new(), other_subfields }
+        Self {
+            is_rda: false,
+            function: PublicationFunction::from_ind2(ind2),
+            places,
+            publishers,
+            dates,
+            manufacturing_places: Vec::new(),
+            manufacturing_dates: Vec::new(),
+            other_subfields,
+        }
     }
 
-    fn from_subfields_210(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
+    fn from_subfields_210(subfields: &[(char, String)]) -> Self {
         const KNOWN: [char; 5] = ['a', 'c', 'd', 'e', 'g'];
         let places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'a').map(|(_, v)| v.clone()).collect();
         let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
@@ -106,7 +95,16 @@ impl PublicationData {
         let manufacturing_places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'e').map(|(_, v)| v.clone()).collect();
         let manufacturing_dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'g').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { is_rda: false, ind1, ind2, places, publishers, dates, manufacturing_places, manufacturing_dates, other_subfields }
+        Self {
+            is_rda: false,
+            function: None,
+            places,
+            publishers,
+            dates,
+            manufacturing_places,
+            manufacturing_dates,
+            other_subfields,
+        }
     }
 
     fn to_subfields(&self, format: MarcFormat) -> Vec<(char, String)> {
@@ -197,38 +195,38 @@ impl Edition {
     ) -> Option<Self> {
         match (tag, format) {
             ("250", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("205", MarcFormat::Unimarc) => {
-                EditionStatementData::from_subfields(ind1, ind2, subfields)
+                EditionStatementData::from_subfields(subfields)
                     .map(Edition::EditionStatement)
             }
             ("260", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                Some(Edition::Publication(PublicationData::from_subfields_260_264(ind1, ind2, subfields)))
+                Some(Edition::Publication(PublicationData::from_subfields_260_264(ind2, subfields)))
             }
             ("264", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                let mut d = PublicationData::from_subfields_260_264(ind1, ind2, subfields);
+                let mut d = PublicationData::from_subfields_260_264(ind2, subfields);
                 d.is_rda = true;
                 Some(Edition::Publication(d))
             }
             ("210", MarcFormat::Unimarc) => {
-                Some(Edition::Publication(PublicationData::from_subfields_210(ind1, ind2, subfields)))
+                Some(Edition::Publication(PublicationData::from_subfields_210(subfields)))
             }
             ("254", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(Edition::MusicalPresentationStatement)
             }
             ("255", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("206", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(Edition::CartographicMathematicalData)
             }
             ("256", MarcFormat::Marc21 | MarcFormat::MarcXml) | ("336", MarcFormat::Unimarc) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(Edition::ComputerFileCharacteristics)
             }
             ("257", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(Edition::CountryOfProducingEntity)
             }
             ("258", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(Edition::PhilatelicIssueData)
             }
             _ => None,
@@ -238,14 +236,17 @@ impl Edition {
     pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
         let tag = self.tag(format)?;
         let df = match self {
-            Edition::EditionStatement(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            Edition::Publication(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields(format)),
+            Edition::EditionStatement(d) => to_data_field(tag, ' ', ' ', d.to_subfields()),
+            Edition::Publication(d) => {
+                let ind2 = d.function.as_ref().map(|f| f.to_ind2()).unwrap_or(' ');
+                to_data_field(tag, ' ', ind2, d.to_subfields(format))
+            }
             Edition::MusicalPresentationStatement(d)
             | Edition::CartographicMathematicalData(d)
             | Edition::ComputerFileCharacteristics(d)
             | Edition::CountryOfProducingEntity(d)
             | Edition::PhilatelicIssueData(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+                to_data_field(tag, ' ', ' ', d.to_subfields())
             }
         };
         Some(df)

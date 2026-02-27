@@ -114,7 +114,6 @@ impl Note {
             Note::AwardsNote(_) => "586",
             Note::SourceOfDescriptionNote(_) => "588",
         };
-        // UNIMARC notes use 3XX block but mapping is complex; keep MARC21 tags for now
         match format {
             MarcFormat::Marc21 | MarcFormat::MarcXml | MarcFormat::Unimarc => tag,
         }
@@ -180,9 +179,9 @@ impl Note {
         ind1: char,
         ind2: char,
         subfields: &[(char, String)],
-        _format: MarcFormat,
+        format: MarcFormat,
     ) -> Option<Self> {
-        let d = NoteData::from_subfields(ind1, ind2, subfields)?;
+        let d = NoteData::from_subfields(ind1, ind2, subfields, format)?;
         let note = match tag {
             "500" => Note::GeneralNote(d),
             "501" => Note::WithNote(d),
@@ -242,6 +241,6 @@ impl Note {
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
         let tag = self.tag(format);
         let d = self.data();
-        to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+        to_data_field(tag, ' ', ' ', d.to_subfields())
     }
 }

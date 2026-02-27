@@ -10,16 +10,6 @@ use crate::record::DataField;
 /// One ISBN occurrence. Raw number in `number`; use `sanitized_number()` for digits + X only.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Isbn {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
     pub number: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub qualification: Option<String>,
@@ -44,8 +34,8 @@ impl Isbn {
     /// Parse one 010 (UNIMARC) or 020 (MARC21) field.
     pub fn try_parse(
         tag: &str,
-        ind1: char,
-        ind2: char,
+        _ind1: char,
+        _ind2: char,
         subfields: &[(char, String)],
         format: MarcFormat,
     ) -> Option<Self> {
@@ -61,8 +51,6 @@ impl Isbn {
         }
         let number = get_subfield(subfields, 'a').unwrap_or_default();
         Some(Self {
-            ind1,
-            ind2,
             number,
             qualification: get_subfield(subfields, qualification_code),
             price_or_acquisition: get_subfield(subfields, price_code),
@@ -93,7 +81,7 @@ impl Isbn {
             MarcFormat::Unimarc => "010",
             MarcFormat::Marc21 | MarcFormat::MarcXml => "020",
         };
-        to_data_field(tag, self.ind1, self.ind2, self.to_subfields(format))
+        to_data_field(tag, ' ', ' ', self.to_subfields(format))
     }
 }
 

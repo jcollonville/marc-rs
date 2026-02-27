@@ -181,8 +181,8 @@ fn test_json_round_trip() {
     record.push_control(Control::FixedLengthDataElements("some-fixed-data".to_string()));
     record.push_title(Title::TitleStatement(
         marc_rs::fields::title::TitleStatementData {
-            ind1: '0',
-            ind2: '4',
+            title_added_entry: false,
+            nonfiling_chars: 4,
             title: "The Rust Programming Language".to_string(),
             remainder: Some("a comprehensive guide".to_string()),
             responsibility: Some("Steve Klabnik and Carol Nichols".to_string()),
@@ -197,8 +197,7 @@ fn test_json_round_trip() {
     ));
     record.push_main_entry(MainEntry::PersonalName(
         marc_rs::fields::common::PersonalNameData {
-            ind1: '1',
-            ind2: ' ',
+            name_type: marc_rs::fields::common::PersonalNameType::Surname,
             name: "Klabnik, Steve".to_string(),
             numeration: None,
             titles: None,
@@ -213,8 +212,7 @@ fn test_json_round_trip() {
     ));
     record.push_subject(Subject::SubjectTopicalTerm(
         marc_rs::fields::common::SubjectData {
-            ind1: ' ',
-            ind2: '0',
+            thesaurus: marc_rs::fields::common::SubjectThesaurus::Lcsh,
             term: "Rust (Computer program language)".to_string(),
             name_subdivision: None,
             form_subdivision: None,

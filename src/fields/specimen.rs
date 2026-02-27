@@ -11,16 +11,6 @@ use crate::record::DataField;
 /// Common subfields: $a library, $b section, $f barcode, $k call number, $v document type.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Specimen {
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub library: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,15 +57,13 @@ impl Specimen {
     /// Parse one 995 or 952 field into a Specimen. Every occurrence is one specimen.
     pub fn try_parse(
         tag: &str,
-        ind1: char,
-        ind2: char,
+        _ind1: char,
+        _ind2: char,
         subfields: &[(char, String)],
         _format: MarcFormat,
     ) -> Option<Self> {
         match tag {
             "995" | "952" => Some(Self {
-                ind1,
-                ind2,
                 library: get_subfield(subfields, 'a'),
                 section: get_subfield(subfields, 'b'),
                 sub_library: get_subfield(subfields, 'c'),
@@ -127,6 +115,6 @@ impl Specimen {
             MarcFormat::Unimarc => "995",
             MarcFormat::Marc21 | MarcFormat::MarcXml => "952",
         };
-        to_data_field(tag, self.ind1, self.ind2, self.to_subfields())
+        to_data_field(tag, ' ', ' ', self.to_subfields())
     }
 }

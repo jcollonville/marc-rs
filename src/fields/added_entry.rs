@@ -62,48 +62,48 @@ impl AddedEntry {
             ("700", MarcFormat::Marc21 | MarcFormat::MarcXml)
             | ("701", MarcFormat::Unimarc)
             | ("702", MarcFormat::Unimarc) => {
-                PersonalNameData::from_subfields(ind1, ind2, subfields)
+                PersonalNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::PersonalName)
             }
             ("710", MarcFormat::Marc21 | MarcFormat::MarcXml)
             | ("712", MarcFormat::Unimarc) => {
-                CorporateNameData::from_subfields(ind1, ind2, subfields)
+                CorporateNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::CorporateName)
             }
             ("711", _) => {
-                MeetingNameData::from_subfields(ind1, ind2, subfields)
+                MeetingNameData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::MeetingName)
             }
             ("720", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::UncontrolledName)
             }
             ("730", _) => {
-                UniformTitleData::from_subfields(ind1, ind2, subfields)
+                UniformTitleData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::UniformTitle)
             }
             ("740", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::UncontrolledRelatedAnalyticalTitle)
             }
             ("751", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::GeographicName)
             }
             ("752", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::HierarchicalPlaceName)
             }
             ("753", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::SystemDetailsAccessToComputerFiles)
             }
             ("754", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::TaxonomicIdentification)
             }
             ("755", _) => {
-                NoteData::from_subfields(ind1, ind2, subfields)
+                NoteData::from_subfields(ind1, ind2, subfields, format)
                     .map(AddedEntry::PhysicalCharacteristics)
             }
             _ => None,
@@ -113,10 +113,18 @@ impl AddedEntry {
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
         let tag = self.tag(format);
         match self {
-            AddedEntry::PersonalName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            AddedEntry::CorporateName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            AddedEntry::MeetingName(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
-            AddedEntry::UniformTitle(d) => to_data_field(tag, d.ind1, d.ind2, d.to_subfields()),
+            AddedEntry::PersonalName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            AddedEntry::CorporateName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            AddedEntry::MeetingName(d) => {
+                to_data_field(tag, d.name_type.to_ind1(format), ' ', d.to_subfields())
+            }
+            AddedEntry::UniformTitle(d) => {
+                to_data_field(tag, nonfiling_chars_to_ind(d.nonfiling_chars), ' ', d.to_subfields())
+            }
             AddedEntry::UncontrolledName(d)
             | AddedEntry::UncontrolledRelatedAnalyticalTitle(d)
             | AddedEntry::GeographicName(d)
@@ -124,7 +132,7 @@ impl AddedEntry {
             | AddedEntry::SystemDetailsAccessToComputerFiles(d)
             | AddedEntry::TaxonomicIdentification(d)
             | AddedEntry::PhysicalCharacteristics(d) => {
-                to_data_field(tag, d.ind1, d.ind2, d.to_subfields())
+                to_data_field(tag, ' ', ' ', d.to_subfields())
             }
         }
     }

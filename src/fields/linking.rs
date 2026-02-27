@@ -88,7 +88,7 @@ impl Linking {
         subfields: &[(char, String)],
         format: MarcFormat,
     ) -> Option<Self> {
-        let d = LinkingData::from_subfields(ind1, ind2, subfields);
+        let d = LinkingData::from_subfields(ind1, ind2, subfields, format);
         let link = match (tag, format) {
             ("760", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::MainSeriesEntry(d),
             ("762", MarcFormat::Marc21 | MarcFormat::MarcXml) => Linking::SubseriesEntry(d),
@@ -129,6 +129,6 @@ impl Linking {
     pub fn to_raw(&self, format: MarcFormat) -> Option<DataField> {
         let tag = self.tag(format)?;
         let d = self.data();
-        Some(to_data_field(tag, d.ind1, d.ind2, d.to_subfields()))
+        Some(to_data_field(tag, d.display_note_ind1(), ' ', d.to_subfields()))
     }
 }
