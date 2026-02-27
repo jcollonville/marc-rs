@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::author::{Author, collect_authors};
 use crate::fields::{
-    AddedEntry, Control, DeweyClassification, Edition, Isbn, LanguageData, Linking, MainEntry,
-    Note, Physical, Series, Specimen, Subject, Title,
+    AddedEntry, Control, DeweyClassification, Edition, Isbn, LanguageData, Linking,
+    MainEntry, Note, Physical, Series, Specimen, Subject, Title,
 };
-use crate::fields::common::{CorporateNameData, MeetingNameData, PersonalNameData};
 use crate::fields::language::LanguageCode;
 use crate::leader::*;
 
@@ -44,27 +44,6 @@ pub struct Record {
     pub other_control: Vec<ControlField>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_data: Vec<DataField>,
-}
-
-/// Author kind (personal, corporate, meeting).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AuthorKind {
-    Personal,
-    Corporate,
-    Meeting,
-}
-
-/// Extracted author from main or added entry (100/700, 110/710, 111/711).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Author {
-    pub kind: AuthorKind,
-    /// Display form: "Name, dates" for personal; full form for corporate/meeting.
-    pub display_name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub relator_term: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub relator_code: Option<String>,
 }
 
 /// Aggregated edition and publication info (250/205 + 260/264/210).
@@ -223,18 +202,7 @@ impl Record {
     /// Collect all authors from main entries (1XX) and added entries (70X–71X).
     /// Order: main entry first, then added entries. Uniform titles are skipped.
     pub fn authors(&self) -> Vec<Author> {
-        let mut out = Vec::new();
-        for e in &self.main_entries {
-            if let Some(a) = author_from_main_entry(e) {
-                out.push(a);
-            }
-        }
-        for e in &self.added_entries {
-            if let Some(a) = author_from_added_entry(e) {
-                out.push(a);
-            }
-        }
-        out
+        collect_authors(&self.main_entries, &self.added_entries)
     }
 
     /// Edition and publication info: statement (250/205), place, publisher, date (260/264/210).
@@ -325,109 +293,6 @@ impl Record {
     pub fn dewey(&self) -> Option<&str> {
         self.classifications.first().and_then(DeweyClassification::first_number)
     }
-}
-
-fn author_from_main_entry(e: &MainEntry) -> Option<Author> {
-    match e {
-        MainEntry::PersonalName(d) => Some(author_personal(d)),
-        MainEntry::CorporateName(d) => Some(author_corporate(d)),
-        MainEntry::MeetingName(d) => Some(author_meeting(d)),
-        MainEntry::UniformTitle(_) => None,
-    }
-}
-
-fn author_from_added_entry(e: &AddedEntry) -> Option<Author> {
-    match e {
-        AddedEntry::PersonalName(d) => Some(author_personal(d)),
-        AddedEntry::CorporateName(d) => Some(author_corporate(d)),
-        AddedEntry::MeetingName(d) => Some(author_meeting(d)),
-        _ => None,
-    }
-}
-
-fn author_personal(d: &PersonalNameData) -> Author {
-    let display_name = personal_display_name(d);
-    Author {
-        kind: AuthorKind::Personal,
-        display_name,
-        relator_term: d.relator_term.clone(),
-        relator_code: d.relator_code.clone(),
-    }
-}
-
-fn author_corporate(d: &CorporateNameData) -> Author {
-    let display_name = corporate_display_name(d);
-    Author {
-        kind: AuthorKind::Corporate,
-        display_name,
-        relator_term: d.relator_term.clone(),
-        relator_code: d.relator_code.clone(),
-    }
-}
-
-fn author_meeting(d: &MeetingNameData) -> Author {
-    let display_name = meeting_display_name(d);
-    Author {
-        kind: AuthorKind::Meeting,
-        display_name,
-        relator_term: None,
-        relator_code: None,
-    }
-}
-
-fn personal_display_name(d: &PersonalNameData) -> String {
-    let mut s = d.name.clone();
-    if let Some(ref b) = d.numeration {
-        s.push_str(" ");
-        s.push_str(b);
-    }
-    if let Some(ref c) = d.titles {
-        s.push_str(" ");
-        s.push_str(c);
-    }
-    if let Some(ref d) = d.dates {
-        s.push_str(", ");
-        s.push_str(d);
-    }
-    s
-}
-
-fn corporate_display_name(d: &CorporateNameData) -> String {
-    let mut s = d.name.clone();
-    if let Some(ref b) = d.subordinate_unit {
-        s.push_str(". ");
-        s.push_str(b);
-    }
-    if let Some(ref c) = d.location {
-        s.push_str(" ");
-        s.push_str(c);
-    }
-    if let Some(ref d) = d.date {
-        s.push_str(" ");
-        s.push_str(d);
-    }
-    s
-}
-
-fn meeting_display_name(d: &MeetingNameData) -> String {
-    let mut s = d.name.clone();
-    if let Some(ref c) = d.location {
-        s.push_str(" ");
-        s.push_str(c);
-    }
-    if let Some(ref d) = d.date {
-        s.push_str(" ");
-        s.push_str(d);
-    }
-    if let Some(ref e) = d.subordinate_unit {
-        s.push_str(". ");
-        s.push_str(e);
-    }
-    if let Some(ref n) = d.number {
-        s.push_str(" ");
-        s.push_str(n);
-    }
-    s
 }
 
 /// Builder for constructing `Record` instances step by step.

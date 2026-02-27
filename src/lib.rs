@@ -73,6 +73,7 @@
 //! - [MARC XML Schema](https://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd)
 //! - [UNIMARC Manual](https://www.transition-bibliographique.fr/unimarc/manuel-unimarc-format-bibliographique/)
 
+pub mod author;
 pub mod encoding;
 pub mod fields;
 pub mod format;
@@ -82,6 +83,7 @@ pub mod auto;
 pub mod record;
 pub mod writer;
 pub mod helpers;
+pub use author::*;
 pub use encoding::*;
 pub use fields::*;
 pub use format::*;
