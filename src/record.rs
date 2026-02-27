@@ -61,6 +61,36 @@ pub struct EditionInfo {
     pub publication_statements: Vec<PublicationStatementInfo>,
 }
 
+/// Collection/series info from 225 (UNIMARC), 490/830 (MARC21).
+///
+/// **UNIMARC 225**: same field for *collection* and *série/suite*: $a titre, $v volume
+/// (crucial for série — numéro de tome), $x ISSN (rather for collection).
+/// Use `collection_links()` for 410 (collection mère) / 411 (sous-série).
+///
+/// **MARC21**: 490 = mention, 830 = point d'accès uniforme (regroupement).
+///
+/// To map into external `Collection` / `Serie` structs (primary_title, name, issn, key),
+/// see `docs/COLLECTION_SERIE_MAPPING.md` in this crate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CollectionInfo {
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issn: Option<String>,
+    pub traced: bool,
+    /// MARC21: mention (490) vs uniform (830). UNIMARC: mention (225).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<CollectionInfoKind>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CollectionInfoKind {
+    Mention,
+    Uniform,
+}
+
 /// One publication/imprint statement (place, publisher, date).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationStatementInfo {
@@ -199,6 +229,9 @@ impl Record {
         self.other_data.push(df);
     }
 
+
+        
+
     /// Collect all authors from main entries (1XX) and added entries (70X–71X).
     /// Order: main entry first, then added entries. Uniform titles are skipped.
     pub fn authors(&self) -> Vec<Author> {
@@ -249,18 +282,56 @@ impl Record {
         }
     }
 
-    /// Collection/series names (440, 490, 225 — title or statement).
+    /// Collection/series titles (225/440/490/830) for simple display.
     pub fn collections(&self) -> Vec<String> {
+        self.collection_infos()
+            .into_iter()
+            .map(|c| c.title)
+            .collect()
+    }
+
+    /// Collection/series details: title, volume, ISSN, traced, kind.
+    /// UNIMARC: 225 ($a, $v, $x). MARC21: 490 (mention), 830 (uniform).
+    pub fn collection_infos(&self) -> Vec<CollectionInfo> {
         let mut out = Vec::new();
         for s in &self.series {
             match s {
                 Series::SeriesTitle(d) | Series::SeriesStatement(d) => {
-                    out.push(d.statement.clone());
+                    out.push(CollectionInfo {
+                        title: d.statement.clone(),
+                        volume: d.volume.clone(),
+                        issn: d.issn.clone(),
+                        traced: d.traced,
+                        kind: Some(CollectionInfoKind::Mention),
+                    });
+                }
+                Series::SeriesUniformTitle(d) => {
+                    out.push(CollectionInfo {
+                        title: d.statement.clone(),
+                        volume: d.volume.clone(),
+                        issn: d.issn.clone(),
+                        traced: d.traced,
+                        kind: Some(CollectionInfoKind::Uniform),
+                    });
                 }
                 _ => {}
             }
         }
         out
+    }
+
+    /// Collection/series links: 410 (UNIMARC collection mère), 411 (sous-série), 760/762 (MARC21).
+    pub fn collection_links(&self) -> Vec<&crate::fields::LinkingData> {
+        self.linking
+            .iter()
+            .filter_map(|li| {
+                match li {
+                    crate::fields::Linking::MainSeriesEntry(d)
+                    | crate::fields::Linking::SubseriesEntry(d) => Some(d),
+                    _ => None,
+                }
+            })
+            .collect()
     }
 
     /// All language codes (041 $a + UNIMARC 101 from Physical::AssociatedLanguage).

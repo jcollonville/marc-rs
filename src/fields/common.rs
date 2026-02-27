@@ -611,6 +611,7 @@ impl SubjectData {
 }
 
 /// Generic data struct for linking entry fields.
+/// UNIMARC 410 (lien de collection): $t title, $1 embedded link / identifier.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LinkingData {
     #[serde(
@@ -628,12 +629,15 @@ pub struct LinkingData {
     pub isbn: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub volume: Option<String>,
+    /// Embedded link / identifier (e.g. UNIMARC 410 $1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub link_identifier: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub other_subfields: Vec<(char, String)>,
 }
 
 impl LinkingData {
-    const KNOWN_CODES: [char; 5] = ['t', 'v', 'w', 'x', 'z'];
+    const KNOWN_CODES: [char; 6] = ['t', 'v', 'w', 'x', 'z', '1'];
 
     pub fn from_subfields(
         ind1: char,
@@ -648,6 +652,7 @@ impl LinkingData {
             issn: get_subfield(subfields, 'x'),
             isbn: get_subfield(subfields, 'z'),
             volume: get_subfield(subfields, 'v'),
+            link_identifier: get_subfield(subfields, '1'),
             other_subfields: get_remaining_subfields(subfields, &Self::KNOWN_CODES),
         }
     }
@@ -659,6 +664,7 @@ impl LinkingData {
         push_subfield(&mut out, 'w', &self.record_control_number);
         push_subfield(&mut out, 'x', &self.issn);
         push_subfield(&mut out, 'z', &self.isbn);
+        push_subfield(&mut out, '1', &self.link_identifier);
         out.extend(self.other_subfields.clone());
         out
     }

@@ -161,7 +161,9 @@ pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlFi
         }
     }
     for se in record.series() {
-        data_fields.push(se.to_raw(format));
+        if let Some(df) = se.to_raw(format) {
+            data_fields.push(df);
+        }
     }
     for no in record.notes() {
         data_fields.push(no.to_raw(format));
