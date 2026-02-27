@@ -6,6 +6,7 @@ use crate::record::DataField;
 
 /// Note fields (5XX in MARC21, 3XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Note {
     GeneralNote(NoteData),
     WithNote(NoteData),

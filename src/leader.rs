@@ -443,7 +443,94 @@ pub struct Leader {
     pub undefined: LeaderUndefined,
 }
 
+/// Builder for constructing `Leader` instances with sensible defaults.
+///
+/// Defaults to a new language-material monograph record with UTF-8 encoding.
+#[derive(Debug, Clone)]
+pub struct LeaderBuilder {
+    leader: Leader,
+}
+
+impl LeaderBuilder {
+    pub fn new() -> Self {
+        Self {
+            leader: Leader {
+                record_length: 0,
+                record_status: RecordStatus::New,
+                record_type: RecordType::LanguageMaterial,
+                bibliographic_level: BibliographicLevel::Monograph,
+                type_of_control: TypeOfControl::NoSpecifiedType,
+                character_coding_scheme: CharacterCodingScheme::Utf8,
+                indicator_count: 2,
+                subfield_code_count: 2,
+                base_address_of_data: 0,
+                encoding_level: EncodingLevel::Full,
+                descriptive_cataloging_form: DescriptiveCatalogingForm::NonIsbd,
+                multipart_resource_record_level: MultipartResourceRecordLevel::NotSpecifiedOrNotApplicable,
+                length_of_length_of_field_portion: 4,
+                length_of_starting_character_position_portion: 5,
+                length_of_implementation_defined_portion: 0,
+                undefined: LeaderUndefined::Blank,
+            },
+        }
+    }
+
+    pub fn record_status(mut self, v: RecordStatus) -> Self {
+        self.leader.record_status = v;
+        self
+    }
+
+    pub fn record_type(mut self, v: RecordType) -> Self {
+        self.leader.record_type = v;
+        self
+    }
+
+    pub fn bibliographic_level(mut self, v: BibliographicLevel) -> Self {
+        self.leader.bibliographic_level = v;
+        self
+    }
+
+    pub fn type_of_control(mut self, v: TypeOfControl) -> Self {
+        self.leader.type_of_control = v;
+        self
+    }
+
+    pub fn character_coding_scheme(mut self, v: CharacterCodingScheme) -> Self {
+        self.leader.character_coding_scheme = v;
+        self
+    }
+
+    pub fn encoding_level(mut self, v: EncodingLevel) -> Self {
+        self.leader.encoding_level = v;
+        self
+    }
+
+    pub fn descriptive_cataloging_form(mut self, v: DescriptiveCatalogingForm) -> Self {
+        self.leader.descriptive_cataloging_form = v;
+        self
+    }
+
+    pub fn multipart_resource_record_level(mut self, v: MultipartResourceRecordLevel) -> Self {
+        self.leader.multipart_resource_record_level = v;
+        self
+    }
+
+    pub fn build(self) -> Leader {
+        self.leader
+    }
+}
+
+impl Default for LeaderBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Leader {
+    pub fn builder() -> LeaderBuilder {
+        LeaderBuilder::new()
+    }
+
     pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
         if data.len() != 24 {
             return Err(format!("Leader must be 24 bytes, got {}", data.len()));

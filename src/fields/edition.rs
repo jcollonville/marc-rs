@@ -6,7 +6,15 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EditionStatementData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub edition: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,7 +50,15 @@ impl EditionStatementData {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationData {
     pub tag: String,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub places: Vec<String>,
@@ -131,6 +147,7 @@ impl PublicationData {
 
 /// Edition fields (25X in MARC21, 2XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Edition {
     /// Edition statement (250 in MARC21, 205 in UNIMARC)
     EditionStatement(EditionStatementData),

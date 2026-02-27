@@ -10,7 +10,15 @@ use crate::record::DataField;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DeweyClassification {
     pub tag: String,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub numbers: Vec<String>,

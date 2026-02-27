@@ -6,6 +6,7 @@ use crate::record::DataField;
 
 /// Subject access fields (6XX in MARC21, 6XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Subject {
     SubjectPersonalName(SubjectData),
     SubjectCorporateName(SubjectData),

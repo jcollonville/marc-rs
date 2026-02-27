@@ -34,6 +34,16 @@ pub fn get_remaining_subfields(
     result
 }
 
+/// Default indicator value used when none is provided.
+pub fn default_indicator() -> char {
+    ' '
+}
+
+/// Helper for Serde: indicators that are the default (blank) are not serialized.
+pub fn is_default_indicator(c: &char) -> bool {
+    *c == ' ' || *c == '\0'
+}
+
 pub fn push_subfield(out: &mut Vec<(char, String)>, code: char, value: &Option<String>) {
     if let Some(ref v) = value {
         out.push((code, v.clone()));
@@ -75,7 +85,15 @@ pub fn to_data_field(
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PersonalNameData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -136,7 +154,15 @@ impl PersonalNameData {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CorporateNameData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -185,7 +211,15 @@ impl CorporateNameData {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MeetingNameData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -230,7 +264,15 @@ impl MeetingNameData {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UniformTitleData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -280,7 +322,15 @@ impl UniformTitleData {
 /// Generic data struct for notes and simple fields with mainly $a text
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NoteData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub text: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -308,7 +358,15 @@ impl NoteData {
 /// Generic data struct for subject fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SubjectData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub term: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -366,7 +424,15 @@ impl SubjectData {
 /// Generic data struct for linking entry fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LinkingData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,

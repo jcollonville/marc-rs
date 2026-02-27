@@ -6,6 +6,7 @@ use crate::record::DataField;
 
 /// Main entry fields (1XX in MARC21, 7XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MainEntry {
     /// Personal name (100 in MARC21, 700 in UNIMARC)
     PersonalName(PersonalNameData),

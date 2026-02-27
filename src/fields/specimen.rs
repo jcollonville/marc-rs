@@ -12,7 +12,15 @@ use crate::record::DataField;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Specimen {
     pub tag: String,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub library: Option<String>,

@@ -6,6 +6,7 @@ use crate::record::DataField;
 
 /// Linking entry fields (76X-78X in MARC21, 4XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Linking {
     MainSeriesEntry(LinkingData),
     SubseriesEntry(LinkingData),

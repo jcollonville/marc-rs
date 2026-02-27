@@ -6,7 +6,15 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PhysicalDescriptionData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub extent: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,6 +81,7 @@ impl PhysicalDescriptionData {
 
 /// Physical description fields (3XX in MARC21, 2XX in UNIMARC)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Physical {
     PhysicalDescription(PhysicalDescriptionData),
     PlayingTime(NoteData),

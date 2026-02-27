@@ -6,7 +6,15 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SeriesStatementData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub statement: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,6 +55,7 @@ impl SeriesStatementData {
 
 /// Series statement fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Series {
     /// Series/Added entry - Personal name (400 in MARC21, 410 in UNIMARC)
     SeriesPersonalName(PersonalNameData),

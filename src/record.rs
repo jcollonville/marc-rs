@@ -5,48 +5,50 @@ use crate::fields::{
     Note, Physical, Series, Specimen, Subject, Title,
 };
 use crate::fields::common::{CorporateNameData, MeetingNameData, PersonalNameData};
+use crate::fields::language::LanguageCode;
 use crate::leader::*;
 
 /// MARC record structure with typed fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Record {
-    leader: Leader,
+    pub leader: Leader,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    control: Vec<Control>,
+    pub control: Vec<Control>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    isbns: Vec<Isbn>,
+    pub isbns: Vec<Isbn>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    titles: Vec<Title>,
+    pub titles: Vec<Title>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    main_entries: Vec<MainEntry>,
+    pub main_entries: Vec<MainEntry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    editions: Vec<Edition>,
+    pub editions: Vec<Edition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    physical: Vec<Physical>,
+    pub physical: Vec<Physical>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    series: Vec<Series>,
+    pub series: Vec<Series>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    notes: Vec<Note>,
+    pub notes: Vec<Note>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    subjects: Vec<Subject>,
+    pub subjects: Vec<Subject>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    added_entries: Vec<AddedEntry>,
+    pub added_entries: Vec<AddedEntry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    linking: Vec<Linking>,
+    pub linking: Vec<Linking>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    specimens: Vec<Specimen>,
+    pub specimens: Vec<Specimen>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    classifications: Vec<DeweyClassification>,
+    pub classifications: Vec<DeweyClassification>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    languages: Vec<LanguageData>,
+    pub languages: Vec<LanguageData>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    other_control: Vec<ControlField>,
+    pub other_control: Vec<ControlField>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    other_data: Vec<DataField>,
+    pub other_data: Vec<DataField>,
 }
 
 /// Author kind (personal, corporate, meeting).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AuthorKind {
     Personal,
     Corporate,
@@ -296,7 +298,7 @@ impl Record {
     }
 
     /// All language codes (041 $a + UNIMARC 101 from Physical::AssociatedLanguage).
-    pub fn language_codes(&self) -> Vec<String> {
+    pub fn language_codes(&self) -> Vec<LanguageCode> {
         let mut out = Vec::new();
         for lang in &self.languages {
             out.extend(lang.codes.clone());
@@ -304,7 +306,7 @@ impl Record {
         for ph in &self.physical {
             if let Physical::AssociatedLanguage(d) = ph {
                 if !d.text.is_empty() {
-                    out.push(d.text.clone());
+                    out.push(LanguageCode::from_code(&d.text));
                 }
             }
         }
@@ -430,6 +432,115 @@ fn meeting_display_name(d: &MeetingNameData) -> String {
     s
 }
 
+/// Builder for constructing `Record` instances step by step.
+#[derive(Debug, Clone)]
+pub struct RecordBuilder {
+    record: Record,
+}
+
+impl RecordBuilder {
+    pub fn new(leader: Leader) -> Self {
+        Self {
+            record: Record::new(leader),
+        }
+    }
+
+    pub fn leader(mut self, leader: Leader) -> Self {
+        self.record.leader = leader;
+        self
+    }
+
+    pub fn control(mut self, c: Control) -> Self {
+        self.record.control.push(c);
+        self
+    }
+
+    pub fn isbn(mut self, isbn: Isbn) -> Self {
+        self.record.isbns.push(isbn);
+        self
+    }
+
+    pub fn title(mut self, t: Title) -> Self {
+        self.record.titles.push(t);
+        self
+    }
+
+    pub fn main_entry(mut self, me: MainEntry) -> Self {
+        self.record.main_entries.push(me);
+        self
+    }
+
+    pub fn edition(mut self, ed: Edition) -> Self {
+        self.record.editions.push(ed);
+        self
+    }
+
+    pub fn physical(mut self, ph: Physical) -> Self {
+        self.record.physical.push(ph);
+        self
+    }
+
+    pub fn series(mut self, se: Series) -> Self {
+        self.record.series.push(se);
+        self
+    }
+
+    pub fn note(mut self, no: Note) -> Self {
+        self.record.notes.push(no);
+        self
+    }
+
+    pub fn subject(mut self, su: Subject) -> Self {
+        self.record.subjects.push(su);
+        self
+    }
+
+    pub fn added_entry(mut self, ae: AddedEntry) -> Self {
+        self.record.added_entries.push(ae);
+        self
+    }
+
+    pub fn linking(mut self, li: Linking) -> Self {
+        self.record.linking.push(li);
+        self
+    }
+
+    pub fn specimen(mut self, sp: Specimen) -> Self {
+        self.record.specimens.push(sp);
+        self
+    }
+
+    pub fn classification(mut self, dc: DeweyClassification) -> Self {
+        self.record.classifications.push(dc);
+        self
+    }
+
+    pub fn language(mut self, lang: LanguageData) -> Self {
+        self.record.languages.push(lang);
+        self
+    }
+
+    pub fn other_control(mut self, c: ControlField) -> Self {
+        self.record.other_control.push(c);
+        self
+    }
+
+    pub fn other_data(mut self, df: DataField) -> Self {
+        self.record.other_data.push(df);
+        self
+    }
+
+    pub fn build(self) -> Record {
+        self.record
+    }
+}
+
+impl Record {
+    pub fn builder(leader: Leader) -> RecordBuilder {
+        RecordBuilder::new(leader)
+    }
+}
+
 /// Raw control field (001-009) — used for the "other" bucket and writing
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlField {
@@ -441,7 +552,15 @@ pub struct ControlField {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataField {
     pub tag: String,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub subfields: Vec<Subfield>,

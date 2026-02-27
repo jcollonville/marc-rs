@@ -5,6 +5,7 @@ use crate::record::ControlField;
 
 /// Typed control fields (001-009)
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Control {
     /// 001 - Control number
     ControlNumber(String),

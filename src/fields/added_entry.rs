@@ -6,6 +6,7 @@ use crate::record::DataField;
 
 /// Added entry fields (70X-75X in MARC21)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AddedEntry {
     /// 700 - Personal name
     PersonalName(PersonalNameData),

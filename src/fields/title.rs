@@ -6,7 +6,15 @@ use crate::record::DataField;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TitleStatementData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,7 +75,15 @@ impl TitleStatementData {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TitleData {
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind1: char,
+    #[serde(
+        default = "crate::fields::common::default_indicator",
+        skip_serializing_if = "crate::fields::common::is_default_indicator"
+    )]
     pub ind2: char,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -100,6 +116,7 @@ impl TitleData {
 
 /// Title and title-related fields
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Title {
     /// Title statement (245 in MARC21, 200 in UNIMARC)
     TitleStatement(TitleStatementData),
