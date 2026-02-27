@@ -51,6 +51,7 @@ fn view_marc_file(
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
+    let file_size = buffer.len();
     let result = parse_auto(&buffer, forced_input)?;
     let records = result.records;
     let detected_format = result.format;
@@ -63,17 +64,30 @@ fn view_marc_file(
 
     match output_format.to_lowercase().as_str() {
         "plain" => {
-            println!("File: {}", file_path);
-            if detected_format == MarcFormat::MarcXml {
-                println!(
-                    "Format: MarcXml (semantic: {:?}, output UTF-8)",
-                    semantic_format
-                );
-            } else {
-                println!("Format: {:?} (output UTF-8)", detected_format);
-            }
             println!("{}", "=".repeat(80));
-            println!("Found {} record(s)\n", records.len());
+            println!("FILE INFO");
+            println!("{}", "=".repeat(80));
+            println!("  File:             {}", file_path);
+            println!("  Size:             {}", format_size(file_size));
+            println!("  Container format: {:?}", detected_format);
+            if detected_format == MarcFormat::MarcXml {
+                println!("  Semantic format:  {:?}", semantic_format);
+            }
+            let encoding = records.first().map(|r| r.leader().character_coding_scheme);
+            if let Some(enc) = encoding {
+                let enc_label = match enc {
+                    marc_rs::CharacterCodingScheme::Utf8 => "UTF-8",
+                    marc_rs::CharacterCodingScheme::Marc8OrUnspecified => "MARC-8 / unspecified",
+                    marc_rs::CharacterCodingScheme::Unknown(c) => {
+                        // leaking is fine for a CLI one-shot display
+                        Box::leak(format!("Unknown ('{}')", c).into_boxed_str())
+                    }
+                };
+                println!("  Encoding (leader): {}", enc_label);
+            }
+            println!("  Records:          {}", records.len());
+            println!("{}", "=".repeat(80));
+            println!();
 
             for (idx, record) in records.iter().enumerate() {
                 if records.len() > 1 {
@@ -204,5 +218,20 @@ fn display_record(record: &Record, format: MarcFormat) {
         }
     } else {
         println!("DATA FIELDS: (none)");
+    }
+}
+
+fn format_size(bytes: usize) -> String {
+    const KIB: usize = 1024;
+    const MIB: usize = 1024 * KIB;
+    const GIB: usize = 1024 * MIB;
+    if bytes >= GIB {
+        format!("{:.2} GiB ({} bytes)", bytes as f64 / GIB as f64, bytes)
+    } else if bytes >= MIB {
+        format!("{:.2} MiB ({} bytes)", bytes as f64 / MIB as f64, bytes)
+    } else if bytes >= KIB {
+        format!("{:.2} KiB ({} bytes)", bytes as f64 / KIB as f64, bytes)
+    } else {
+        format!("{} bytes", bytes)
     }
 }

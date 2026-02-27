@@ -9,7 +9,8 @@ use crate::record::DataField;
 /// Dewey Decimal Classification — 082 (primary) or 083 (additional) in MARC21, 676 in UNIMARC.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DeweyClassification {
-    pub tag: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_additional: bool,
     #[serde(
         default = "crate::fields::common::default_indicator",
         skip_serializing_if = "crate::fields::common::is_default_indicator"
@@ -67,7 +68,7 @@ impl DeweyClassification {
         let edition = get_subfield(subfields, edition_code);
         let other_subfields = get_remaining_subfields(subfields, known);
         Some(Self {
-            tag: tag.to_string(),
+            is_additional: tag == "083",
             ind1,
             ind2,
             numbers,
@@ -77,22 +78,27 @@ impl DeweyClassification {
         })
     }
 
-    fn to_subfields(&self, _format: MarcFormat) -> Vec<(char, String)> {
+    fn to_subfields(&self, format: MarcFormat) -> Vec<(char, String)> {
         let mut out = Vec::new();
         for n in &self.numbers {
             out.push(('a', n.clone()));
         }
         push_subfield(&mut out, 'b', &self.item_number);
-        if self.tag == "676" {
-            push_subfield(&mut out, 'v', &self.edition);
-        } else {
-            push_subfield(&mut out, '2', &self.edition);
+        match format {
+            MarcFormat::Unimarc => push_subfield(&mut out, 'v', &self.edition),
+            MarcFormat::Marc21 | MarcFormat::MarcXml => push_subfield(&mut out, '2', &self.edition),
         }
         out.extend(self.other_subfields.clone());
         out
     }
 
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
-        to_data_field(&self.tag, self.ind1, self.ind2, self.to_subfields(format))
+        let tag = match format {
+            MarcFormat::Unimarc => "676",
+            MarcFormat::Marc21 | MarcFormat::MarcXml => {
+                if self.is_additional { "083" } else { "082" }
+            }
+        };
+        to_data_field(tag, self.ind1, self.ind2, self.to_subfields(format))
     }
 }

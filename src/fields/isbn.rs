@@ -10,7 +10,6 @@ use crate::record::DataField;
 /// One ISBN occurrence. Raw number in `number`; use `sanitized_number()` for digits + X only.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Isbn {
-    pub tag: String,
     #[serde(
         default = "crate::fields::common::default_indicator",
         skip_serializing_if = "crate::fields::common::is_default_indicator"
@@ -62,7 +61,6 @@ impl Isbn {
         }
         let number = get_subfield(subfields, 'a').unwrap_or_default();
         Some(Self {
-            tag: tag.to_string(),
             ind1,
             ind2,
             number,
@@ -91,7 +89,11 @@ impl Isbn {
     }
 
     pub fn to_raw(&self, format: MarcFormat) -> DataField {
-        to_data_field(&self.tag, self.ind1, self.ind2, self.to_subfields(format))
+        let tag = match format {
+            MarcFormat::Unimarc => "010",
+            MarcFormat::Marc21 | MarcFormat::MarcXml => "020",
+        };
+        to_data_field(tag, self.ind1, self.ind2, self.to_subfields(format))
     }
 }
 

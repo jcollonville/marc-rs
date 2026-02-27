@@ -71,6 +71,56 @@ pub fn write_marc21_binary(
     Ok(())
 }
 
+/// Returns true if `tag` is a UNIMARC-specific data tag that must NOT appear
+/// in MARC21 output (either meaningless or conflicting semantics).
+fn is_unimarc_only_data_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        // UNIMARC coded information block (1XX). In MARC21 the 1XX range holds
+        // main entries — including these would corrupt the record.
+        "100" | "102" | "105" | "106"
+            | "110" | "111" | "115" | "116" | "117"
+            | "120" | "121" | "122" | "123" | "124"
+            | "126" | "127"
+            | "130" | "131" | "135"
+            | "140" | "141"
+            // Content / media / carrier type (RDA-related UNIMARC fields)
+            | "181" | "182" | "183"
+            // Originating source
+            | "801" | "802"
+    )
+}
+
+/// Returns true if `tag` is a MARC21-specific data tag that must NOT appear
+/// in UNIMARC output.
+fn is_marc21_only_data_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        // MARC21 classification / call-number fields (0XX block).
+        // In UNIMARC the 0XX range is standard-number identifiers.
+        "050" | "051" | "052" | "055"
+            | "060" | "061" | "066"
+            | "070" | "071" | "072" | "074"
+            | "080" | "084" | "086"
+    )
+}
+
+/// Check whether an `other_data` tag is compatible with the target format.
+fn is_other_data_compatible(tag: &str, target: MarcFormat) -> bool {
+    match target {
+        MarcFormat::Marc21 | MarcFormat::MarcXml => !is_unimarc_only_data_tag(tag),
+        MarcFormat::Unimarc => !is_marc21_only_data_tag(tag),
+    }
+}
+
+/// Check whether an `other_control` tag is compatible with the target format.
+fn is_other_control_compatible(tag: &str, target: MarcFormat) -> bool {
+    match target {
+        MarcFormat::Marc21 | MarcFormat::MarcXml => tag != "009",
+        MarcFormat::Unimarc => !matches!(tag, "006" | "008"),
+    }
+}
+
 /// Collect all fields from a typed Record into raw ControlField/DataField lists,
 /// sorted by tag for canonical output order.
 pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlField>, Vec<DataField>) {
@@ -83,8 +133,12 @@ pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlFi
             control_fields.push(cf);
         }
     }
-    // Other control fields
-    control_fields.extend(record.other_control().to_vec());
+    // Other control fields — filter out format-incompatible tags
+    for cf in record.other_control() {
+        if is_other_control_compatible(&cf.tag, format) {
+            control_fields.push(cf.clone());
+        }
+    }
 
     // Typed data fields
     for isbn in record.isbns() {
@@ -134,8 +188,12 @@ pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlFi
     for lang in record.languages() {
         data_fields.push(lang.to_raw(format));
     }
-    // Other data fields
-    data_fields.extend(record.other_data().to_vec());
+    // Other data fields — filter out format-incompatible tags
+    for df in record.other_data() {
+        if is_other_data_compatible(&df.tag, format) {
+            data_fields.push(df.clone());
+        }
+    }
 
     // Sort for canonical order
     control_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
@@ -258,7 +316,7 @@ pub fn write_marc_xml(
             .map_err(|e| WriteError::Other(format!("Invalid leader UTF-8: {}", e)))?;
         let leader_start = BytesStart::new("leader");
         writer.write_event(Event::Start(leader_start))?;
-        writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+        writer.write_event(Event::Text(quick_xml::events::BytesText::new(
             leader_str,
         )))?;
         writer.write_event(Event::End(BytesEnd::new("leader")))?;
@@ -267,7 +325,7 @@ pub fn write_marc_xml(
             let mut field_start = BytesStart::new("controlfield");
             field_start.push_attribute(("tag", field.tag.as_str()));
             writer.write_event(Event::Start(field_start.clone()))?;
-            writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+            writer.write_event(Event::Text(quick_xml::events::BytesText::new(
                 &field.value,
             )))?;
             writer.write_event(Event::End(BytesEnd::new("controlfield")))?;
@@ -284,7 +342,7 @@ pub fn write_marc_xml(
                 let mut subfield_start = BytesStart::new("subfield");
                 subfield_start.push_attribute(("code", subfield.code.to_string().as_str()));
                 writer.write_event(Event::Start(subfield_start.clone()))?;
-                writer.write_event(Event::Text(quick_xml::events::BytesText::from_escaped(
+                writer.write_event(Event::Text(quick_xml::events::BytesText::new(
                     &subfield.value,
                 )))?;
                 writer.write_event(Event::End(BytesEnd::new("subfield")))?;

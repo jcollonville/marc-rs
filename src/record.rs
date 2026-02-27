@@ -85,7 +85,6 @@ pub struct EditionInfo {
 /// One publication/imprint statement (place, publisher, date).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationStatementInfo {
-    pub tag: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub place: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -264,7 +263,6 @@ impl Record {
                         date = d.date().map(String::from);
                     }
                     publication_statements.push(PublicationStatementInfo {
-                        tag: d.tag.clone(),
                         place: d.place().map(String::from),
                         publisher: d.publisher().map(String::from),
                         date: d.date().map(String::from),

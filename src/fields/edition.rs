@@ -49,7 +49,8 @@ impl EditionStatementData {
 /// MARC21: 260 or 264 ($a place, $b publisher, $c date). UNIMARC: 210 ($a place, $c publisher, $d date).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationData {
-    pub tag: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub is_rda: bool,
     #[serde(
         default = "crate::fields::common::default_indicator",
         skip_serializing_if = "crate::fields::common::is_default_indicator"
@@ -94,7 +95,7 @@ impl PublicationData {
         let publishers: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'b').map(|(_, v)| v.clone()).collect();
         let dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'c').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { tag: String::new(), ind1, ind2, places, publishers, dates, manufacturing_places: Vec::new(), manufacturing_dates: Vec::new(), other_subfields }
+        Self { is_rda: false, ind1, ind2, places, publishers, dates, manufacturing_places: Vec::new(), manufacturing_dates: Vec::new(), other_subfields }
     }
 
     fn from_subfields_210(ind1: char, ind2: char, subfields: &[(char, String)]) -> Self {
@@ -105,13 +106,13 @@ impl PublicationData {
         let manufacturing_places: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'e').map(|(_, v)| v.clone()).collect();
         let manufacturing_dates: Vec<String> = subfields.iter().filter(|(c, _)| *c == 'g').map(|(_, v)| v.clone()).collect();
         let other_subfields = get_remaining_subfields(subfields, &KNOWN);
-        Self { tag: String::new(), ind1, ind2, places, publishers, dates, manufacturing_places, manufacturing_dates, other_subfields }
+        Self { is_rda: false, ind1, ind2, places, publishers, dates, manufacturing_places, manufacturing_dates, other_subfields }
     }
 
-    fn to_subfields(&self, _format: MarcFormat) -> Vec<(char, String)> {
+    fn to_subfields(&self, format: MarcFormat) -> Vec<(char, String)> {
         let mut out = Vec::new();
-        match self.tag.as_str() {
-            "210" => {
+        match format {
+            MarcFormat::Unimarc => {
                 for p in &self.places {
                     out.push(('a', p.clone()));
                 }
@@ -128,7 +129,7 @@ impl PublicationData {
                     out.push(('g', d.clone()));
                 }
             }
-            _ => {
+            MarcFormat::Marc21 | MarcFormat::MarcXml => {
                 if let Some(p) = self.places.first() {
                     out.push(('a', p.clone()));
                 }
@@ -170,7 +171,10 @@ impl Edition {
         match (self, format) {
             (Edition::EditionStatement(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("250"),
             (Edition::EditionStatement(_), MarcFormat::Unimarc) => Some("205"),
-            (Edition::Publication(d), _) => Some(d.tag.as_str()),
+            (Edition::Publication(_), MarcFormat::Unimarc) => Some("210"),
+            (Edition::Publication(d), MarcFormat::Marc21 | MarcFormat::MarcXml) => {
+                if d.is_rda { Some("264") } else { Some("260") }
+            }
             (Edition::MusicalPresentationStatement(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("254"),
             (Edition::MusicalPresentationStatement(_), MarcFormat::Unimarc) => None,
             (Edition::CartographicMathematicalData(_), MarcFormat::Marc21 | MarcFormat::MarcXml) => Some("255"),
@@ -197,19 +201,15 @@ impl Edition {
                     .map(Edition::EditionStatement)
             }
             ("260", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
-                let mut d = PublicationData::from_subfields_260_264(ind1, ind2, subfields);
-                d.tag = "260".to_string();
-                Some(Edition::Publication(d))
+                Some(Edition::Publication(PublicationData::from_subfields_260_264(ind1, ind2, subfields)))
             }
             ("264", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
                 let mut d = PublicationData::from_subfields_260_264(ind1, ind2, subfields);
-                d.tag = "264".to_string();
+                d.is_rda = true;
                 Some(Edition::Publication(d))
             }
             ("210", MarcFormat::Unimarc) => {
-                let mut d = PublicationData::from_subfields_210(ind1, ind2, subfields);
-                d.tag = "210".to_string();
-                Some(Edition::Publication(d))
+                Some(Edition::Publication(PublicationData::from_subfields_210(ind1, ind2, subfields)))
             }
             ("254", MarcFormat::Marc21 | MarcFormat::MarcXml) => {
                 NoteData::from_subfields(ind1, ind2, subfields)

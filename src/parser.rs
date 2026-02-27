@@ -282,42 +282,48 @@ fn detect_record_encoding(
 }
 
 /// Heuristic detection of MARC flavor (MARC21 vs UNIMARC) for a binary record.
-/// Strategy (binary only):
-/// 1. Leader position 9 == 'a' => MARC21 (UTF-8).
-/// 2. Scan directory tags for strong signals:
-///    - UNIMARC: 200, 010, 100 (fixed data), plus other typical tags.
-///    - MARC21: 245 (title), 020 (ISBN).
-/// 3. If ambiguous or no signal, fall back to MARC21.
+/// Uses weighted scoring on directory tags — mirrors `detect_xml_semantic_format`.
 fn detect_record_format(record_data: &[u8], directory: &[u8]) -> MarcFormat {
-    // 1. Leader position 9: 'a' => MARC21 UTF-8
     if record_data.len() > 9 && record_data[9] == b'a' {
         return MarcFormat::Marc21;
     }
 
-    // 2. Scan directory for signature tags
+    let mut marc21_score: i32 = 0;
+    let mut unimarc_score: i32 = 0;
     let mut dir_offset = 0;
-    let mut marc21_hit = false;
-    let mut unimarc_hit = false;
 
     while dir_offset + 12 <= directory.len() {
         let tag_bytes = &directory[dir_offset..dir_offset + 3];
         match tag_bytes {
-            b"200" | b"010" | b"100" | b"215" | b"225" | b"606" | b"607" | b"608" | b"676"
-            | b"801" | b"952" | b"995" | b"101" | b"102" => {
-                unimarc_hit = true;
+            // Strong UNIMARC signals
+            b"200" => unimarc_score += 3, // title (UNIMARC-exclusive)
+            b"010" => unimarc_score += 2, // ISBN
+            b"215" => unimarc_score += 2, // physical description
+            b"101" | b"102" => unimarc_score += 2, // language / country coded
+            b"801" => unimarc_score += 2, // originating source
+            b"225" | b"606" | b"607" | b"608" | b"676" | b"952" | b"995" => {
+                unimarc_score += 1;
             }
-            b"245" | b"020" => {
-                marc21_hit = true;
-            }
+            // Weak: tag 100 exists in both formats but UNIMARC uses it as coded data
+            // (single $a with fixed-length value) — only a mild signal
+            b"100" => unimarc_score += 1,
+
+            // Strong MARC21 signals
+            b"245" => marc21_score += 3, // title (MARC21-exclusive)
+            b"020" => marc21_score += 2, // ISBN
+            b"300" => marc21_score += 2, // physical description
+            b"650" | b"651" => marc21_score += 2, // subject headings
+            b"260" | b"264" => marc21_score += 1, // publication
+            b"041" | b"050" | b"082" | b"008" => marc21_score += 1,
             _ => {}
         }
         dir_offset += 12;
     }
 
-
-    match (marc21_hit, unimarc_hit) {
-        (true, false) => MarcFormat::Marc21,
-        _ => MarcFormat::Unimarc,
+    if unimarc_score > marc21_score {
+        MarcFormat::Unimarc
+    } else {
+        MarcFormat::Marc21
     }
 }
 

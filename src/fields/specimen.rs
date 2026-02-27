@@ -11,7 +11,6 @@ use crate::record::DataField;
 /// Common subfields: $a library, $b section, $f barcode, $k call number, $v document type.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Specimen {
-    pub tag: String,
     #[serde(
         default = "crate::fields::common::default_indicator",
         skip_serializing_if = "crate::fields::common::is_default_indicator"
@@ -75,7 +74,6 @@ impl Specimen {
     ) -> Option<Self> {
         match tag {
             "995" | "952" => Some(Self {
-                tag: tag.to_string(),
                 ind1,
                 ind2,
                 library: get_subfield(subfields, 'a'),
@@ -124,7 +122,11 @@ impl Specimen {
         out
     }
 
-    pub fn to_raw(&self, _format: MarcFormat) -> DataField {
-        to_data_field(&self.tag, self.ind1, self.ind2, self.to_subfields())
+    pub fn to_raw(&self, format: MarcFormat) -> DataField {
+        let tag = match format {
+            MarcFormat::Unimarc => "995",
+            MarcFormat::Marc21 | MarcFormat::MarcXml => "952",
+        };
+        to_data_field(tag, self.ind1, self.ind2, self.to_subfields())
     }
 }
