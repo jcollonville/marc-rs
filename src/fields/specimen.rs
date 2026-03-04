@@ -54,6 +54,28 @@ impl Specimen {
         'a', 'b', 'c', 'd', 'e', 'f', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 't', 'v', 'w',
     ];
 
+    pub fn new() -> Self {
+        Self {
+            library: None,
+            section: None,
+            sub_library: None,
+            section_code: None,
+            level_code: None,
+            barcode: None,
+            call_number: None,
+            inventory_number: None,
+            creation_date: None,
+            modification_date: None,
+            loan_date: None,
+            return_date: None,
+            acquisition_date: None,
+            item_type: None,
+            record_control_number: None,
+            document_type: None,
+            circulation_status: None,
+            other_subfields: Vec::new(),
+        }
+    }
     /// Parse one 995 or 952 field into a Specimen. Every occurrence is one specimen.
     pub fn try_parse(
         tag: &str,
