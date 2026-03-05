@@ -168,21 +168,15 @@ fn display_record(record: &Record, format: MarcFormat) {
     );
     println!();
 
-    let has_control = !record.control().is_empty() || !record.other_control().is_empty();
-    if has_control {
+    let (control_fields, data_fields) = crate::writer::collect_raw_fields(record, format);
+
+    if !control_fields.is_empty() {
         println!("CONTROL FIELDS");
-        for c in record.control() {
-            if let Some(tag) = c.tag(format) {
-                println!("  {}: {}", tag, c.value());
-            }
-        }
-        for c in record.other_control() {
+        for c in &control_fields {
             println!("  {}: {}", c.tag, c.value);
         }
         println!();
     }
-
-    let (_, data_fields) = crate::writer::collect_raw_fields(record, format);
 
     if !data_fields.is_empty() {
         println!("DATA FIELDS");

@@ -1,52 +1,48 @@
 use serde::{Deserialize, Serialize};
 
-use crate::author::{Author, collect_authors};
-use crate::fields::{
-    AddedEntry, Control, DeweyClassification, Edition, Isbn, LanguageData, Linking,
-    MainEntry, Note, Physical, Series, Specimen, Subject, Title,
+use crate::blocks::{
+    AssociatedTitlesBlock, CodedInformationBlock, DescriptionBlock, IdentificationBlock,
+    IntellectualResponsibilityBlock, InternationalUseBlock, LinksBlock, LocalUseBlock,
+    MarcBlock, NotesBlock, SubjectAnalysisBlock,
 };
-use crate::fields::language::LanguageCode;
-use crate::leader::*;
+use crate::datatypes::{Specimen, default_indicator, is_default_indicator};
+use crate::datatypes::language::LanguageCode;
+use crate::formats::{FieldType, FormatDescriptor};
+use crate::{MarcFormat, leader::*};
 
-/// MARC record structure with typed fields
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Record {
-    pub leader: Leader,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub control: Vec<Control>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub isbns: Vec<Isbn>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub titles: Vec<Title>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub main_entries: Vec<MainEntry>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub editions: Vec<Edition>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub physical: Vec<Physical>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub series: Vec<Series>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub notes: Vec<Note>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub subjects: Vec<Subject>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub added_entries: Vec<AddedEntry>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub linking: Vec<Linking>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub specimens: Vec<Specimen>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub classifications: Vec<DeweyClassification>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub languages: Vec<LanguageData>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub other_control: Vec<ControlField>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub other_data: Vec<DataField>,
+/// Raw control field (001-009).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlField {
+    pub tag: String,
+    pub value: String,
 }
 
-/// Aggregated edition and publication info (250/205 + 260/264/210).
+/// Raw data field (010-999).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DataField {
+    pub tag: String,
+    #[serde(
+        default = "default_indicator",
+        skip_serializing_if = "is_default_indicator"
+    )]
+    pub ind1: char,
+    #[serde(
+        default = "default_indicator",
+        skip_serializing_if = "is_default_indicator"
+    )]
+    pub ind2: char,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subfields: Vec<Subfield>,
+}
+
+/// Subfield within a data field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Subfield {
+    pub code: char,
+    pub value: String,
+}
+
+/// Aggregated edition and publication info.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EditionInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,16 +57,7 @@ pub struct EditionInfo {
     pub publication_statements: Vec<PublicationStatementInfo>,
 }
 
-/// Collection/series info from 225 (UNIMARC), 490/830 (MARC21).
-///
-/// **UNIMARC 225**: same field for *collection* and *série/suite*: $a titre, $v volume
-/// (crucial for série — numéro de tome), $x ISSN (rather for collection).
-/// Use `collection_links()` for 410 (collection mère) / 411 (sous-série).
-///
-/// **MARC21**: 490 = mention, 830 = point d'accès uniforme (regroupement).
-///
-/// To map into external `Collection` / `Serie` structs (primary_title, name, issn, key),
-/// see `docs/COLLECTION_SERIE_MAPPING.md` in this crate.
+/// Collection/series info.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CollectionInfo {
     pub title: String,
@@ -79,7 +66,6 @@ pub struct CollectionInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issn: Option<String>,
     pub traced: bool,
-    /// MARC21: mention (490) vs uniform (830). UNIMARC: mention (225).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<CollectionInfoKind>,
 }
@@ -91,7 +77,7 @@ pub enum CollectionInfoKind {
     Uniform,
 }
 
-/// One publication/imprint statement (place, publisher, date).
+/// One publication/imprint statement.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PublicationStatementInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,281 +88,328 @@ pub struct PublicationStatementInfo {
     pub date: Option<String>,
 }
 
+/// MARC record structured into 10 semantic blocks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Record {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_format: Option<MarcFormat>,
+    pub leader: Leader,
+    /// Bloc 0 – Identification (0xx)
+    #[serde(default)]
+    pub identification: IdentificationBlock,
+    /// Bloc 1 – Informations codées (1xx)
+    #[serde(default)]
+    pub coded_information: CodedInformationBlock,
+    /// Bloc 2 – Description (2xx/3xx)
+    #[serde(default)]
+    pub description: DescriptionBlock,
+    /// Bloc 3 – Notes (3xx/5xx)
+    #[serde(default)]
+    pub notes: NotesBlock,
+    /// Bloc 4 – Liens (4xx/76x-78x)
+    #[serde(default)]
+    pub links: LinksBlock,
+    /// Bloc 5 – Titres associés (5xx)
+    #[serde(default)]
+    pub associated_titles: AssociatedTitlesBlock,
+    /// Bloc 6 – Analyse matière (6xx)
+    #[serde(default)]
+    pub subject_analysis: SubjectAnalysisBlock,
+    /// Bloc 7 – Responsabilité intellectuelle (7xx)
+    #[serde(default)]
+    pub intellectual_responsibility: IntellectualResponsibilityBlock,
+    /// Bloc 8 – Usage international (8xx)
+    #[serde(default)]
+    pub international_use: InternationalUseBlock,
+    /// Bloc 9 – Usage local (9xx)
+    #[serde(default)]
+    pub local_use: LocalUseBlock,
+}
+
+impl Default for Record {
+    fn default() -> Self {
+        Self::new(None, Leader::default())
+    }
+}
+
 impl Record {
-    pub fn new(leader: Leader) -> Self {
+    pub fn new(original_format: Option<MarcFormat>, leader: Leader) -> Self {
         Self {
+            original_format,
             leader,
-            control: Vec::new(),
-            isbns: Vec::new(),
-            titles: Vec::new(),
-            main_entries: Vec::new(),
-            editions: Vec::new(),
-            physical: Vec::new(),
-            series: Vec::new(),
-            notes: Vec::new(),
-            subjects: Vec::new(),
-            added_entries: Vec::new(),
-            linking: Vec::new(),
-            specimens: Vec::new(),
-            classifications: Vec::new(),
-            languages: Vec::new(),
-            other_control: Vec::new(),
-            other_data: Vec::new(),
+            identification: IdentificationBlock::default(),
+            coded_information: CodedInformationBlock::default(),
+            description: DescriptionBlock::default(),
+            notes: NotesBlock::default(),
+            links: LinksBlock::default(),
+            associated_titles: AssociatedTitlesBlock::default(),
+            subject_analysis: SubjectAnalysisBlock::default(),
+            intellectual_responsibility: IntellectualResponsibilityBlock::default(),
+            international_use: InternationalUseBlock::default(),
+            local_use: LocalUseBlock::default(),
         }
     }
 
     pub fn leader(&self) -> &Leader {
         &self.leader
     }
+
     pub fn set_leader(&mut self, leader: Leader) {
         self.leader = leader;
     }
-    pub fn control(&self) -> &[Control] {
-        &self.control
-    }
-    pub fn isbns(&self) -> &[Isbn] {
-        &self.isbns
-    }
-    pub fn titles(&self) -> &[Title] {
-        &self.titles
-    }
-    pub fn main_entries(&self) -> &[MainEntry] {
-        &self.main_entries
-    }
-    pub fn editions(&self) -> &[Edition] {
-        &self.editions
-    }
-    pub fn physical(&self) -> &[Physical] {
-        &self.physical
-    }
-    pub fn series(&self) -> &[Series] {
-        &self.series
-    }
-    pub fn notes(&self) -> &[Note] {
-        &self.notes
-    }
-    pub fn subjects(&self) -> &[Subject] {
-        &self.subjects
-    }
-    pub fn added_entries(&self) -> &[AddedEntry] {
-        &self.added_entries
-    }
-    pub fn linking(&self) -> &[Linking] {
-        &self.linking
-    }
-    pub fn specimens(&self) -> &[Specimen] {
-        &self.specimens
-    }
-    pub fn classifications(&self) -> &[DeweyClassification] {
-        &self.classifications
-    }
-    pub fn languages(&self) -> &[LanguageData] {
-        &self.languages
-    }
-    pub fn other_control(&self) -> &[ControlField] {
-        &self.other_control
-    }
-    pub fn other_data(&self) -> &[DataField] {
-        &self.other_data
+
+    /// Dispatch a data field to the correct block using the format descriptor for routing.
+    pub fn dispatch_data_field(
+        &mut self,
+        tag: &str,
+        ind1: char,
+        ind2: char,
+        subfields: &[(char, String)],
+        descriptor: &dyn FormatDescriptor,
+    ) {
+        if let Some(desc) = descriptor.tag_descriptor(tag) {
+            use crate::formats::BlockId;
+            match desc.block {
+                BlockId::Identification => {
+                    self.identification.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::CodedInformation => {
+                    self.coded_information.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::Description => {
+                    self.description.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::Notes => {
+                    self.notes.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::Links => {
+                    self.links.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::AssociatedTitles => {
+                    self.associated_titles.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::SubjectAnalysis => {
+                    self.subject_analysis.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::IntellectualResponsibility => {
+                    self.intellectual_responsibility.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::InternationalUse => {
+                    self.international_use.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+                BlockId::LocalUse => {
+                    self.local_use.dispatch_data(tag, ind1, ind2, subfields, descriptor);
+                }
+            }
+        } else {
+            // Unknown tag – fallback to block routing by prefix
+            self.dispatch_data_by_tag_prefix(tag, ind1, ind2, subfields, descriptor);
+        }
     }
 
-    pub fn push_control(&mut self, c: Control) {
-        self.control.push(c);
-    }
-    pub fn push_other_control(&mut self, c: ControlField) {
-        self.other_control.push(c);
-    }
-    pub fn push_isbn(&mut self, isbn: Isbn) {
-        self.isbns.push(isbn);
-    }
-    pub fn push_title(&mut self, t: Title) {
-        self.titles.push(t);
-    }
-    pub fn push_main_entry(&mut self, me: MainEntry) {
-        self.main_entries.push(me);
-    }
-    pub fn push_edition(&mut self, ed: Edition) {
-        self.editions.push(ed);
-    }
-    pub fn push_physical(&mut self, ph: Physical) {
-        self.physical.push(ph);
-    }
-    pub fn push_series(&mut self, se: Series) {
-        self.series.push(se);
-    }
-    pub fn push_note(&mut self, no: Note) {
-        self.notes.push(no);
-    }
-    pub fn push_subject(&mut self, su: Subject) {
-        self.subjects.push(su);
-    }
-    pub fn push_added_entry(&mut self, ae: AddedEntry) {
-        self.added_entries.push(ae);
-    }
-    pub fn push_linking(&mut self, li: Linking) {
-        self.linking.push(li);
-    }
-    pub fn push_specimen(&mut self, sp: Specimen) {
-        self.specimens.push(sp);
-    }
-    pub fn push_classification(&mut self, dc: DeweyClassification) {
-        self.classifications.push(dc);
-    }
-    pub fn push_language(&mut self, lang: LanguageData) {
-        self.languages.push(lang);
-    }
-    pub fn push_other_data(&mut self, df: DataField) {
-        self.other_data.push(df);
+    fn dispatch_data_by_tag_prefix(
+        &mut self,
+        tag: &str,
+        ind1: char,
+        ind2: char,
+        subfields: &[(char, String)],
+        descriptor: &dyn FormatDescriptor,
+    ) {
+        let prefix = tag.chars().next().unwrap_or('0');
+        match prefix {
+            '0' => self.identification.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '1' => self.coded_information.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '2' | '3' => self.description.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '4' => self.links.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '5' => self.associated_titles.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '6' => self.subject_analysis.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '7' => self.intellectual_responsibility.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '8' => self.international_use.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            '9' => self.local_use.dispatch_data(tag, ind1, ind2, subfields, descriptor),
+            _ => {}
+        }
     }
 
-
-        
-
-    /// Collect all authors from main entries (1XX) and added entries (70X–71X).
-    /// Order: main entry first, then added entries. Uniform titles are skipped.
-    pub fn authors(&self) -> Vec<Author> {
-        collect_authors(&self.main_entries, &self.added_entries)
+    /// Dispatch a control field to the correct block.
+    pub fn dispatch_control_field(
+        &mut self,
+        tag: &str,
+        value: &str,
+        descriptor: &dyn FormatDescriptor,
+    ) {
+        // Control fields 00x go to identification or coded_information
+        match tag {
+            "001" | "003" | "005" | "009" => {
+                self.identification.dispatch_control(tag, value, descriptor);
+            }
+            "006" | "007" | "008" => {
+                self.coded_information.dispatch_control(tag, value, descriptor);
+            }
+            _ => {
+                self.identification.dispatch_control(tag, value, descriptor);
+            }
+        }
     }
 
-    /// Edition and publication info: statement (250/205), place, publisher, date (260/264/210).
+    /// Collect all raw fields ordered by block for writing.
+    pub fn collect_raw_fields(&self, descriptor: &dyn FormatDescriptor) -> (Vec<ControlField>, Vec<DataField>) {
+        let mut controls = Vec::new();
+        let mut data = Vec::new();
+
+        controls.extend(self.identification.collect_control_fields(descriptor));
+        controls.extend(self.coded_information.collect_control_fields(descriptor));
+
+        data.extend(self.identification.collect_data_fields(descriptor));
+        data.extend(self.coded_information.collect_data_fields(descriptor));
+        data.extend(self.description.collect_data_fields(descriptor));
+        data.extend(self.notes.collect_data_fields(descriptor));
+        data.extend(self.links.collect_data_fields(descriptor));
+        data.extend(self.associated_titles.collect_data_fields(descriptor));
+        data.extend(self.subject_analysis.collect_data_fields(descriptor));
+        data.extend(self.intellectual_responsibility.collect_data_fields(descriptor));
+        data.extend(self.international_use.collect_data_fields(descriptor));
+        data.extend(self.local_use.collect_data_fields(descriptor));
+
+        (controls, data)
+    }
+
+    // ── Utility / accessor methods ─────────────────────────────────────
+
+    /// All authors (main + added entries) as flat `Author` list.
+    pub fn authors(&self) -> Vec<crate::author::Author> {
+        use crate::author::{author_from_personal_name, author_from_corporate_name, author_from_meeting_name};
+        let ir = &self.intellectual_responsibility;
+        let mut out = Vec::new();
+
+        if let Some(ref p) = ir.main_entry_personal_name {
+            out.push(author_from_personal_name(p));
+        }
+        if let Some(ref c) = ir.main_entry_corporate_name {
+            out.push(author_from_corporate_name(c));
+        }
+        if let Some(ref m) = ir.main_entry_meeting_name {
+            out.push(author_from_meeting_name(m));
+        }
+        for p in &ir.added_entry_personal_names {
+            out.push(author_from_personal_name(p));
+        }
+        for c in &ir.added_entry_corporate_names {
+            out.push(author_from_corporate_name(c));
+        }
+        for m in &ir.added_entry_meeting_names {
+            out.push(author_from_meeting_name(m));
+        }
+        out
+    }
+
+    /// Edition and publication info.
     pub fn edition_info(&self) -> EditionInfo {
-        let mut edition_statement = None;
-        let mut place = None;
-        let mut publisher = None;
-        let mut date = None;
-        let mut publication_statements = Vec::new();
-
-        for e in &self.editions {
-            match e {
-                Edition::EditionStatement(d) => {
-                    if edition_statement.is_none() {
-                        edition_statement = Some(d.edition.clone());
-                    }
-                }
-                Edition::Publication(d) => {
-                    if place.is_none() {
-                        place = d.place().map(String::from);
-                    }
-                    if publisher.is_none() {
-                        publisher = d.publisher().map(String::from);
-                    }
-                    if date.is_none() {
-                        date = d.date().map(String::from);
-                    }
-                    publication_statements.push(PublicationStatementInfo {
-                        place: d.place().map(String::from),
-                        publisher: d.publisher().map(String::from),
-                        date: d.date().map(String::from),
-                    });
-                }
-                _ => {}
+        let d = &self.description;
+        let edition_statement = match &d.edition_statement {
+            Some(crate::datatypes::edition::Edition::EditionStatement(ed)) => {
+                Some(ed.edition.clone())
             }
-        }
+            _ => None,
+        };
 
-        EditionInfo {
-            edition_statement,
-            place,
-            publisher,
-            date,
-            publication_statements,
+        let (place, publisher, date, publication_statements) =
+            if let Some(ref p) = d.publication_distribution_imprint {
+                let ps = PublicationStatementInfo {
+                    place: p.place().map(String::from),
+                    publisher: p.publisher().map(String::from),
+                    date: p.date().map(String::from),
+                };
+                (
+                    p.place().map(String::from),
+                    p.publisher().map(String::from),
+                    p.date().map(String::from),
+                    vec![ps],
+                )
+            } else {
+                (None, None, None, Vec::new())
+            };
+
+        EditionInfo { edition_statement, place, publisher, date, publication_statements }
+    }
+
+    /// Title string (primary title statement).
+    pub fn title(&self) -> Option<&str> {
+        match &self.description.title_statement {
+            Some(crate::datatypes::title::Title::TitleStatement(d)) => Some(&d.title),
+            _ => None,
         }
     }
 
-    /// Collection/series titles (225/440/490/830) for simple display.
+    /// Collection/series titles for display.
     pub fn collections(&self) -> Vec<String> {
-        self.collection_infos()
-            .into_iter()
-            .map(|c| c.title)
-            .collect()
+        self.description.series_statement.iter().map(|s| s.statement.clone()).collect()
     }
 
-    /// Collection/series details: title, volume, ISSN, traced, kind.
-    /// UNIMARC: 225 ($a, $v, $x). MARC21: 490 (mention), 830 (uniform).
+    /// Collection/series details.
     pub fn collection_infos(&self) -> Vec<CollectionInfo> {
-        let mut out = Vec::new();
-        for s in &self.series {
-            match s {
-                Series::SeriesTitle(d) | Series::SeriesStatement(d) => {
-                    out.push(CollectionInfo {
-                        title: d.statement.clone(),
-                        volume: d.volume.clone(),
-                        issn: d.issn.clone(),
-                        traced: d.traced,
-                        kind: Some(CollectionInfoKind::Mention),
-                    });
-                }
-                Series::SeriesUniformTitle(d) => {
-                    out.push(CollectionInfo {
-                        title: d.statement.clone(),
-                        volume: d.volume.clone(),
-                        issn: d.issn.clone(),
-                        traced: d.traced,
-                        kind: Some(CollectionInfoKind::Uniform),
-                    });
-                }
-                _ => {}
-            }
-        }
-        out
+        self.description.series_statement.iter().map(|s| CollectionInfo {
+            title: s.statement.clone(),
+            volume: s.volume.clone(),
+            issn: s.issn.clone(),
+            traced: s.traced,
+            kind: Some(CollectionInfoKind::Mention),
+        }).collect()
     }
 
-    /// Collection/series links: 410 (UNIMARC collection mère), 411 (sous-série), 760/762 (MARC21).
-    pub fn collection_links(&self) -> Vec<&crate::fields::LinkingData> {
-        self.linking
-            .iter()
-            .filter_map(|li| {
-                match li {
-                    crate::fields::Linking::MainSeriesEntry(d)
-                    | crate::fields::Linking::SubseriesEntry(d) => Some(d),
-                    _ => None,
-                }
-            })
-            .collect()
-    }
-
-    /// All language codes (041 $a + UNIMARC 101 from Physical::AssociatedLanguage).
+    /// All language codes (041/101 $a).
     pub fn language_codes(&self) -> Vec<LanguageCode> {
-        let mut out = Vec::new();
-        for lang in &self.languages {
-            out.extend(lang.codes.clone());
-        }
-        for ph in &self.physical {
-            if let Physical::AssociatedLanguage(d) = ph {
-                if !d.text.is_empty() {
-                    out.push(LanguageCode::from_code(&d.text));
-                }
-            }
-        }
-        out
-    }
-
-    /// First audience/public type (385 MARC21, 330 UNIMARC).
-    pub fn audience(&self) -> Option<String> {
-        for ph in &self.physical {
-            if let Physical::AudienceCharacteristics(d) = ph {
-                return Some(d.text.clone());
-            }
-        }
-        None
+        self.coded_information.language_of_resource
+            .as_ref()
+            .map(|l| l.codes.clone())
+            .unwrap_or_default()
     }
 
     /// First Dewey number if present (082/083/676).
     pub fn dewey(&self) -> Option<&str> {
-        self.classifications.first().and_then(DeweyClassification::first_number)
+        self.subject_analysis.dewey_classification
+            .first()
+            .and_then(|d| d.first_number())
+    }
+
+    /// First electronic access URI (856 $u).
+    pub fn electronic_uri(&self) -> Option<&str> {
+        self.international_use.electronic_location_access.first().map(String::as_str)
+    }
+
+    /// Record identifier (001).
+    pub fn record_id(&self) -> Option<&str> {
+        self.identification.record_identifier.as_deref()
+    }
+
+    pub fn specimens(&self) -> Vec<Specimen> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        let tags = descriptor.field_type_to_tag(FieldType::Specimen);
+
+        let mut out = Vec::new();
+        for tag in tags {
+            let field = self.local_use.data.iter().find(|f| f.tag == tag.tag);
+            if let Some(field) = field {
+                let subfields: Vec<(char, String)> = field
+                    .subfields
+                    .iter()
+                    .map(|sf| (sf.code, sf.value.clone()))
+                    .collect();
+                let specimen = Specimen::from_subfields_with_desc(tag, &subfields);
+                out.push(specimen);
+            }
+        }
+        out
     }
 }
 
-/// Builder for constructing `Record` instances step by step.
-#[derive(Debug, Clone)]
+/// Builder for constructing `Record` instances.
 pub struct RecordBuilder {
     record: Record,
 }
 
 impl RecordBuilder {
-    pub fn new(leader: Leader) -> Self {
-        Self {
-            record: Record::new(leader),
-        }
+    pub fn new(original_format: Option<MarcFormat>, leader: Leader) -> Self {
+        Self { record: Record::new(original_format, leader) }
     }
 
     pub fn leader(mut self, leader: Leader) -> Self {
@@ -384,83 +417,63 @@ impl RecordBuilder {
         self
     }
 
-    pub fn control(mut self, c: Control) -> Self {
-        self.record.control.push(c);
+    /// Apply a closure to the identification block.
+    pub fn identification<F: FnOnce(&mut IdentificationBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.identification);
         self
     }
 
-    pub fn isbn(mut self, isbn: Isbn) -> Self {
-        self.record.isbns.push(isbn);
+    /// Apply a closure to the coded information block.
+    pub fn coded_information<F: FnOnce(&mut CodedInformationBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.coded_information);
         self
     }
 
-    pub fn title(mut self, t: Title) -> Self {
-        self.record.titles.push(t);
+    /// Apply a closure to the description block.
+    pub fn description<F: FnOnce(&mut DescriptionBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.description);
         self
     }
 
-    pub fn main_entry(mut self, me: MainEntry) -> Self {
-        self.record.main_entries.push(me);
+    /// Apply a closure to the notes block.
+    pub fn notes<F: FnOnce(&mut NotesBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.notes);
         self
     }
 
-    pub fn edition(mut self, ed: Edition) -> Self {
-        self.record.editions.push(ed);
+    /// Apply a closure to the links block.
+    pub fn links<F: FnOnce(&mut LinksBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.links);
         self
     }
 
-    pub fn physical(mut self, ph: Physical) -> Self {
-        self.record.physical.push(ph);
+    /// Apply a closure to the associated titles block.
+    pub fn associated_titles<F: FnOnce(&mut AssociatedTitlesBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.associated_titles);
         self
     }
 
-    pub fn series(mut self, se: Series) -> Self {
-        self.record.series.push(se);
+    /// Apply a closure to the subject analysis block.
+    pub fn subject_analysis<F: FnOnce(&mut SubjectAnalysisBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.subject_analysis);
         self
     }
 
-    pub fn note(mut self, no: Note) -> Self {
-        self.record.notes.push(no);
+    /// Apply a closure to the intellectual responsibility block.
+    pub fn intellectual_responsibility<F: FnOnce(&mut IntellectualResponsibilityBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.intellectual_responsibility);
         self
     }
 
-    pub fn subject(mut self, su: Subject) -> Self {
-        self.record.subjects.push(su);
+    /// Apply a closure to the international use block.
+    pub fn international_use<F: FnOnce(&mut InternationalUseBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.international_use);
         self
     }
 
-    pub fn added_entry(mut self, ae: AddedEntry) -> Self {
-        self.record.added_entries.push(ae);
-        self
-    }
-
-    pub fn linking(mut self, li: Linking) -> Self {
-        self.record.linking.push(li);
-        self
-    }
-
-    pub fn specimen(mut self, sp: Specimen) -> Self {
-        self.record.specimens.push(sp);
-        self
-    }
-
-    pub fn classification(mut self, dc: DeweyClassification) -> Self {
-        self.record.classifications.push(dc);
-        self
-    }
-
-    pub fn language(mut self, lang: LanguageData) -> Self {
-        self.record.languages.push(lang);
-        self
-    }
-
-    pub fn other_control(mut self, c: ControlField) -> Self {
-        self.record.other_control.push(c);
-        self
-    }
-
-    pub fn other_data(mut self, df: DataField) -> Self {
-        self.record.other_data.push(df);
+    /// Apply a closure to the local use block.
+    pub fn local_use<F: FnOnce(&mut LocalUseBlock)>(mut self, f: F) -> Self {
+        f(&mut self.record.local_use);
         self
     }
 
@@ -471,38 +484,6 @@ impl RecordBuilder {
 
 impl Record {
     pub fn builder(leader: Leader) -> RecordBuilder {
-        RecordBuilder::new(leader)
+        RecordBuilder::new(None, leader)
     }
-}
-
-/// Raw control field (001-009) — used for the "other" bucket and writing
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ControlField {
-    pub tag: String,
-    pub value: String,
-}
-
-/// Raw data field (010-999) — used for the "other" bucket and writing
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct DataField {
-    pub tag: String,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind1: char,
-    #[serde(
-        default = "crate::fields::common::default_indicator",
-        skip_serializing_if = "crate::fields::common::is_default_indicator"
-    )]
-    pub ind2: char,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub subfields: Vec<Subfield>,
-}
-
-/// Subfield within a data field
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Subfield {
-    pub code: char,
-    pub value: String,
 }

@@ -451,28 +451,32 @@ pub struct LeaderBuilder {
     leader: Leader,
 }
 
+impl Default for Leader {
+    fn default() -> Self {
+        Leader {
+            record_length: 0,
+            record_status: RecordStatus::New,
+            record_type: RecordType::LanguageMaterial,
+            bibliographic_level: BibliographicLevel::Monograph,
+            type_of_control: TypeOfControl::NoSpecifiedType,
+            character_coding_scheme: CharacterCodingScheme::Utf8,
+            indicator_count: 2,
+            subfield_code_count: 2,
+            base_address_of_data: 0,
+            encoding_level: EncodingLevel::Full,
+            descriptive_cataloging_form: DescriptiveCatalogingForm::NonIsbd,
+            multipart_resource_record_level: MultipartResourceRecordLevel::NotSpecifiedOrNotApplicable,
+            length_of_length_of_field_portion: 4,
+            length_of_starting_character_position_portion: 5,
+            length_of_implementation_defined_portion: 0,
+            undefined: LeaderUndefined::Blank,
+        }
+    }
+}
+
 impl LeaderBuilder {
     pub fn new() -> Self {
-        Self {
-            leader: Leader {
-                record_length: 0,
-                record_status: RecordStatus::New,
-                record_type: RecordType::LanguageMaterial,
-                bibliographic_level: BibliographicLevel::Monograph,
-                type_of_control: TypeOfControl::NoSpecifiedType,
-                character_coding_scheme: CharacterCodingScheme::Utf8,
-                indicator_count: 2,
-                subfield_code_count: 2,
-                base_address_of_data: 0,
-                encoding_level: EncodingLevel::Full,
-                descriptive_cataloging_form: DescriptiveCatalogingForm::NonIsbd,
-                multipart_resource_record_level: MultipartResourceRecordLevel::NotSpecifiedOrNotApplicable,
-                length_of_length_of_field_portion: 4,
-                length_of_starting_character_position_portion: 5,
-                length_of_implementation_defined_portion: 0,
-                undefined: LeaderUndefined::Blank,
-            },
-        }
+        Self { leader: Leader::default() }
     }
 
     pub fn record_status(mut self, v: RecordStatus) -> Self {

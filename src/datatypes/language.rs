@@ -1,14 +1,10 @@
-//! Language code fields — 041 (MARC21). UNIMARC 101 is in Physical::AssociatedLanguage.
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::fields::common::*;
-use crate::format::MarcFormat;
+use crate::datatypes::{data_field_from_desc, find_code_for_name, get_remaining_subfields, known_codes_from_map};
+use crate::formats::TagDescriptor;
 use crate::record::DataField;
 
 /// Language enumeration for common MARC / ISO 639-2 language codes.
-///
-/// Serialized as the 3-letter code (e.g. `"fre"`, `"eng"`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LanguageCode {
     Arabic,
@@ -24,12 +20,10 @@ pub enum LanguageCode {
     Portuguese,
     Russian,
     Spanish,
-    /// Any other 3-letter MARC/ISO code not covered above.
     Other(String),
 }
 
 impl LanguageCode {
-    /// Create a `LanguageCode` from a 3-letter MARC / ISO 639-2 code.
     pub fn from_code(code: &str) -> Self {
         match code.to_ascii_lowercase().as_str() {
             "ara" => LanguageCode::Arabic,
@@ -49,7 +43,6 @@ impl LanguageCode {
         }
     }
 
-    /// Preferred 3-letter code for MARC output.
     pub fn as_code(&self) -> &str {
         match self {
             LanguageCode::Arabic => "ara",
@@ -83,7 +76,7 @@ impl<'de> Deserialize<'de> for LanguageCode {
     }
 }
 
-/// Language codes — 041 (MARC21). $a repeatable (main language codes).
+/// Language codes — 041 (MARC21), 101 (UNIMARC).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LanguageData {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -95,53 +88,40 @@ pub struct LanguageData {
 }
 
 impl LanguageData {
-    const KNOWN_CODES: [char; 8] = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'j'];
-
-    pub fn try_parse(
-        tag: &str,
-        ind1: char,
-        _ind2: char,
-        subfields: &[(char, String)],
-        format: MarcFormat,
-    ) -> Option<Self> {
-        match (tag, format) {
-            ("041", MarcFormat::Marc21 | MarcFormat::MarcXml) => {}
-            _ => return None,
-        }
-        let codes: Vec<LanguageCode> = subfields
-            .iter()
-            .filter(|(c, _)| *c == 'a')
+    pub fn from_subfields_with_map(ind1: char, subfields: &[(char, String)], desc: &TagDescriptor) -> Option<Self> {
+        let lang_code = find_code_for_name(desc.subfield_map, "language_code").unwrap_or('a');
+        let known = known_codes_from_map(desc.subfield_map);
+        let codes: Vec<LanguageCode> = subfields.iter()
+            .filter(|(c, _)| *c == lang_code)
             .map(|(_, v)| LanguageCode::from_code(v))
             .collect();
+        if codes.is_empty() {
+            return None;
+        }
         let is_translation = match ind1 {
             '0' => Some(false),
             '1' => Some(true),
             _ => None,
         };
-        let other_subfields = get_remaining_subfields(subfields, &Self::KNOWN_CODES);
         Some(Self {
             is_translation,
             codes,
-            other_subfields,
+            other_subfields: get_remaining_subfields(subfields, &known),
         })
     }
 
-    fn to_subfields(&self) -> Vec<(char, String)> {
-        let mut out = Vec::new();
-        for lang in &self.codes {
-            out.push(('a', lang.as_code().to_string()));
-        }
+    pub fn to_raw_with_desc(&self, desc: &TagDescriptor) -> DataField {
+        let lang_code = find_code_for_name(desc.subfield_map, "language_code").unwrap_or('a');
+        let mut out: Vec<(char, String)> = self.codes.iter()
+            .map(|l| (lang_code, l.as_code().to_string()))
+            .collect();
         out.extend(self.other_subfields.clone());
-        out
-    }
-
-    pub fn to_raw(&self, _format: MarcFormat) -> DataField {
         let ind1 = match self.is_translation {
             Some(false) => '0',
             Some(true) => '1',
             None => ' ',
         };
-        to_data_field("041", ind1, ' ', self.to_subfields())
+        data_field_from_desc(desc, ind1, ' ', out)
     }
 
     pub fn push_language(&mut self, lang: LanguageCode) {

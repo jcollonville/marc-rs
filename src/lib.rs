@@ -74,9 +74,11 @@
 //! - [UNIMARC Manual](https://www.transition-bibliographique.fr/unimarc/manuel-unimarc-format-bibliographique/)
 
 pub mod author;
+pub mod blocks;
+pub mod datatypes;
 pub mod encoding;
-pub mod fields;
 pub mod format;
+pub mod formats;
 pub mod leader;
 pub mod parser;
 pub mod auto;
@@ -85,7 +87,6 @@ pub mod writer;
 pub mod helpers;
 pub use author::*;
 pub use encoding::*;
-pub use fields::*;
 pub use format::*;
 pub use leader::*;
 pub use parser::*;

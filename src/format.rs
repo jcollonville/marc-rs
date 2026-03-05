@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 /// MARC format types
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MarcFormat {
     /// MARC21 bibliographic format
     Marc21,
@@ -9,6 +12,12 @@ pub enum MarcFormat {
     Unimarc,
     /// MARC XML format
     MarcXml,
+}
+
+impl Default for MarcFormat {
+    fn default() -> Self {
+        MarcFormat::Marc21
+    }
 }
 
 impl From<&str> for MarcFormat {

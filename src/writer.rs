@@ -1,5 +1,6 @@
 use crate::encoding::convert_from_encoding;
 use crate::format::{FormatEncoding, MarcFormat};
+use crate::formats::{MARC21_FORMAT, UNIMARC_FORMAT};
 use crate::record::{ControlField, DataField, Record};
 use std::io::Write;
 
@@ -71,133 +72,17 @@ pub fn write_marc21_binary(
     Ok(())
 }
 
-/// Returns true if `tag` is a UNIMARC-specific data tag that must NOT appear
-/// in MARC21 output (either meaningless or conflicting semantics).
-fn is_unimarc_only_data_tag(tag: &str) -> bool {
-    matches!(
-        tag,
-        // UNIMARC coded information block (1XX). In MARC21 the 1XX range holds
-        // main entries — including these would corrupt the record.
-        "100" | "102" | "105" | "106"
-            | "110" | "111" | "115" | "116" | "117"
-            | "120" | "121" | "122" | "123" | "124"
-            | "126" | "127"
-            | "130" | "131" | "135"
-            | "140" | "141"
-            // Content / media / carrier type (RDA-related UNIMARC fields)
-            | "181" | "182" | "183"
-            // Originating source
-            | "801" | "802"
-    )
-}
-
-/// Returns true if `tag` is a MARC21-specific data tag that must NOT appear
-/// in UNIMARC output.
-fn is_marc21_only_data_tag(tag: &str) -> bool {
-    matches!(
-        tag,
-        // MARC21 classification / call-number fields (0XX block).
-        // In UNIMARC the 0XX range is standard-number identifiers.
-        "050" | "051" | "052" | "055"
-            | "060" | "061" | "066"
-            | "070" | "071" | "072" | "074"
-            | "080" | "084" | "086"
-    )
-}
-
-/// Check whether an `other_data` tag is compatible with the target format.
-fn is_other_data_compatible(tag: &str, target: MarcFormat) -> bool {
-    match target {
-        MarcFormat::Marc21 | MarcFormat::MarcXml => !is_unimarc_only_data_tag(tag),
-        MarcFormat::Unimarc => !is_marc21_only_data_tag(tag),
-    }
-}
-
-/// Check whether an `other_control` tag is compatible with the target format.
-fn is_other_control_compatible(tag: &str, target: MarcFormat) -> bool {
-    match target {
-        MarcFormat::Marc21 | MarcFormat::MarcXml => tag != "009",
-        MarcFormat::Unimarc => !matches!(tag, "006" | "008"),
-    }
-}
-
 /// Collect all fields from a typed Record into raw ControlField/DataField lists,
 /// sorted by tag for canonical output order.
 pub fn collect_raw_fields(record: &Record, format: MarcFormat) -> (Vec<ControlField>, Vec<DataField>) {
-    let mut control_fields = Vec::new();
-    let mut data_fields = Vec::new();
+    let descriptor: &dyn crate::formats::FormatDescriptor = match format {
+        MarcFormat::Unimarc => &UNIMARC_FORMAT,
+        MarcFormat::Marc21 | MarcFormat::MarcXml => &MARC21_FORMAT,
+    };
 
-    // Typed control fields
-    for c in record.control() {
-        if let Some(cf) = c.to_raw(format) {
-            control_fields.push(cf);
-        }
-    }
-    // Other control fields — filter out format-incompatible tags
-    for cf in record.other_control() {
-        if is_other_control_compatible(&cf.tag, format) {
-            control_fields.push(cf.clone());
-        }
-    }
+    let (mut control_fields, mut data_fields) = record.collect_raw_fields(descriptor);
 
-    // Typed data fields
-    for isbn in record.isbns() {
-        data_fields.push(isbn.to_raw(format));
-    }
-    for t in record.titles() {
-        data_fields.push(t.to_raw(format));
-    }
-    for me in record.main_entries() {
-        data_fields.push(me.to_raw(format));
-    }
-    for ed in record.editions() {
-        if let Some(df) = ed.to_raw(format) {
-            data_fields.push(df);
-        }
-    }
-    for ph in record.physical() {
-        if let Some(df) = ph.to_raw(format) {
-            data_fields.push(df);
-        }
-    }
-    for se in record.series() {
-        if let Some(df) = se.to_raw(format) {
-            data_fields.push(df);
-        }
-    }
-    for no in record.notes() {
-        data_fields.push(no.to_raw(format));
-    }
-    for su in record.subjects() {
-        if let Some(df) = su.to_raw(format) {
-            data_fields.push(df);
-        }
-    }
-    for ae in record.added_entries() {
-        data_fields.push(ae.to_raw(format));
-    }
-    for li in record.linking() {
-        if let Some(df) = li.to_raw(format) {
-            data_fields.push(df);
-        }
-    }
-    for sp in record.specimens() {
-        data_fields.push(sp.to_raw(format));
-    }
-    for dc in record.classifications() {
-        data_fields.push(dc.to_raw(format));
-    }
-    for lang in record.languages() {
-        data_fields.push(lang.to_raw(format));
-    }
-    // Other data fields — filter out format-incompatible tags
-    for df in record.other_data() {
-        if is_other_data_compatible(&df.tag, format) {
-            data_fields.push(df.clone());
-        }
-    }
-
-    // Sort for canonical order
+    // Sort for canonical output order
     control_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
     data_fields.sort_by(|a, b| a.tag.cmp(&b.tag));
 

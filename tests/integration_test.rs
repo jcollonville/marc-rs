@@ -1,4 +1,6 @@
 use marc_rs::*;
+use marc_rs::datatypes::title::{Title, TitleStatementData};
+use marc_rs::datatypes::{PersonalNameData, PersonalNameType};
 
 #[test]
 fn test_parse_empty() {
@@ -45,9 +47,9 @@ fn test_record_creation() {
         undefined: LeaderUndefined::Blank,
     };
 
-    let mut record = Record::new(leader);
-    record.push_control(Control::ControlNumber("12345".to_string()));
-    record.push_title(Title::TitleStatement(TitleStatementData {
+    let mut record = Record::new(None, leader);
+    record.identification.record_identifier = Some("12345".to_string());
+    record.description.title_statement = Some(Title::TitleStatement(TitleStatementData {
         title_added_entry: true,
         nonfiling_chars: 0,
         title: "Test title".to_string(),
@@ -62,8 +64,9 @@ fn test_record_creation() {
         other_subfields: vec![],
     }));
 
-    assert_eq!(record.control().len(), 1);
-    assert_eq!(record.titles().len(), 1);
+    assert_eq!(record.record_id(), Some("12345"));
+    assert!(record.title().is_some());
+    assert_eq!(record.title(), Some("Test title"));
 }
 
 #[test]
@@ -97,70 +100,36 @@ fn test_leader_to_from_bytes() {
 
 #[test]
 fn test_field_tag_mappings() {
-    // MARC21
-    let me = MainEntry::PersonalName(PersonalNameData {
-        name_type: PersonalNameType::Surname,
-        name: "Test".to_string(),
-        numeration: None,
-        titles: None,
-        dates: None,
-        relator_term: None,
-        fuller_form: None,
-        relator_code: None,
-        authority_number: None,
-        dates_of_work: None,
-        other_subfields: vec![],
-    });
-    assert_eq!(me.tag(MarcFormat::Marc21), "100");
-    assert_eq!(me.tag(MarcFormat::Unimarc), "700");
+    // Test MARC tag dispatch via FormatDescriptor
+    use marc_rs::formats::{MARC21_FORMAT, UNIMARC_FORMAT, FormatDescriptor};
 
-    let ts = Title::TitleStatement(TitleStatementData {
-        title_added_entry: true,
-        nonfiling_chars: 0,
-        title: "Test".to_string(),
-        remainder: None,
-        responsibility: None,
-        other_title_info: None,
-        first_responsibility: None,
-        other_responsibility: None,
-        medium: None,
-        number_of_part: None,
-        name_of_part: None,
-        other_subfields: vec![],
-    });
-    assert_eq!(ts.tag(MarcFormat::Marc21), "245");
-    assert_eq!(ts.tag(MarcFormat::Unimarc), "200");
+    let marc21_title = MARC21_FORMAT.tag_descriptor("245");
+    assert!(marc21_title.is_some());
+    assert_eq!(marc21_title.unwrap().field, "title_statement");
 
-    assert_eq!(
-        Control::ControlNumber("x".to_string()).tag(MarcFormat::Marc21),
-        Some("001")
-    );
+    let unimarc_title = UNIMARC_FORMAT.tag_descriptor("200");
+    assert!(unimarc_title.is_some());
+    assert_eq!(unimarc_title.unwrap().field, "title_statement");
+
+    let marc21_001 = MARC21_FORMAT.tag_descriptor("001");
+    assert!(marc21_001.is_some());
+    assert_eq!(marc21_001.unwrap().field, "record_identifier");
 }
 
 #[test]
-fn test_title_try_parse_and_to_raw() {
+fn test_title_dispatch_and_read() {
+    let mut record = Record::default();
+    let descriptor = &marc_rs::formats::MARC21_FORMAT;
+
     let subfields = vec![
         ('a', "Main title".to_string()),
         ('b', "subtitle".to_string()),
         ('c', "Author".to_string()),
     ];
 
-    let title =
-        Title::try_parse("245", '1', '0', &subfields, MarcFormat::Marc21).expect("should parse");
-    match &title {
-        Title::TitleStatement(d) => {
-            assert_eq!(d.title, "Main title");
-            assert_eq!(d.remainder.as_deref(), Some("subtitle"));
-            assert_eq!(d.responsibility.as_deref(), Some("Author"));
-        }
-        _ => panic!("Expected TitleStatement"),
-    }
+    record.dispatch_data_field("245", '1', '0', &subfields, descriptor);
 
-    let raw = title.to_raw(MarcFormat::Marc21);
-    assert_eq!(raw.tag, "245");
-    assert_eq!(raw.ind1, '1');
-    assert_eq!(raw.ind2, '0');
-    assert_eq!(raw.subfields.len(), 3);
+    assert_eq!(record.title(), Some("Main title"));
 }
 
 #[test]

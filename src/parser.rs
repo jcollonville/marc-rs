@@ -1,11 +1,16 @@
 use crate::encoding::{convert_to_utf8, convert_to_utf8_heuristic};
-use crate::fields::{
-    AddedEntry, Control, DeweyClassification, Edition, Isbn, LanguageData, Linking, MainEntry,
-    Note, Physical, Series, Specimen, Subject, Title,
-};
 use crate::format::{Encoding, FormatEncoding, MarcFormat};
+use crate::formats::{FormatDescriptor, MARC21_FORMAT, UNIMARC_FORMAT};
 use crate::leader::*;
-use crate::record::{ControlField, DataField, Record, Subfield};
+use crate::record::Record;
+
+/// Get the format descriptor for a given MarcFormat.
+pub fn descriptor_for(format: MarcFormat) -> &'static dyn FormatDescriptor {
+    match format {
+        MarcFormat::Unimarc => &UNIMARC_FORMAT,
+        MarcFormat::Marc21 | MarcFormat::MarcXml => &MARC21_FORMAT,
+    }
+}
 
 /// Result of auto-detection parsing.
 #[derive(Debug, Clone)]
@@ -350,24 +355,17 @@ fn decode_field_bytes(bytes: &[u8], encoding: Option<Encoding>) -> Result<String
     }
 }
 
-/// Dispatch a control field (tag < "010") into typed Record fields.
+/// Dispatch a control field into the correct Record block.
 fn dispatch_control_field(
     tag: &str,
     value: &str,
     format: MarcFormat,
     record: &mut Record,
 ) {
-    if let Some(ctrl) = Control::try_parse(tag, value, format) {
-        record.push_control(ctrl);
-    } else {
-        record.push_other_control(ControlField {
-            tag: tag.to_string(),
-            value: value.to_string(),
-        });
-    }
+    record.dispatch_control_field(tag, value, descriptor_for(format));
 }
 
-/// Dispatch a data field (tag >= "010") into typed Record fields.
+/// Dispatch a data field into the correct Record block.
 fn dispatch_data_field(
     tag: &str,
     ind1: char,
@@ -376,73 +374,7 @@ fn dispatch_data_field(
     format: MarcFormat,
     record: &mut Record,
 ) {
-    // Try each field module in priority order (ISBN before Physical so 010 UNIMARC is ISBN)
-    if let Some(isbn) = Isbn::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_isbn(isbn);
-        return;
-    }
-    if let Some(t) = Title::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_title(t);
-        return;
-    }
-    if let Some(me) = MainEntry::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_main_entry(me);
-        return;
-    }
-    if let Some(ed) = Edition::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_edition(ed);
-        return;
-    }
-    if let Some(ph) = Physical::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_physical(ph);
-        return;
-    }
-    if let Some(se) = Series::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_series(se);
-        return;
-    }
-    if let Some(dc) = DeweyClassification::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_classification(dc);
-        return;
-    }
-    if let Some(lang) = LanguageData::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_language(lang);
-        return;
-    }
-    if let Some(no) = Note::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_note(no);
-        return;
-    }
-    if let Some(su) = Subject::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_subject(su);
-        return;
-    }
-    if let Some(ae) = AddedEntry::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_added_entry(ae);
-        return;
-    }
-    if let Some(li) = Linking::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_linking(li);
-        return;
-    }
-    if let Some(sp) = Specimen::try_parse(tag, ind1, ind2, subfields, format) {
-        record.push_specimen(sp);
-        return;
-    }
-
-    // Unrecognized tag => other_data
-    record.push_other_data(DataField {
-        tag: tag.to_string(),
-        ind1,
-        ind2,
-        subfields: subfields
-            .iter()
-            .map(|(c, v)| Subfield {
-                code: *c,
-                value: v.clone(),
-            })
-            .collect(),
-    });
+    record.dispatch_data_field(tag, ind1, ind2, subfields, descriptor_for(format));
 }
 
 /// Parse raw subfield bytes into (code, value) tuples.
@@ -491,7 +423,7 @@ fn parse_single_record(
     let format = forced_format.unwrap_or_else(|| detect_record_format(data, directory));
     let record_encoding = detect_record_encoding(data, leader, format);
 
-    let mut record = Record::new(leader.clone());
+    let mut record = Record::new(Some(format),leader.clone());
 
     let mut dir_offset = 0;
     while dir_offset + 12 <= directory.len() {
@@ -606,7 +538,7 @@ pub fn parse_marc_xml(
                     in_collection = true;
                 }
                 b"record" => {
-                    current_record = Some(Record::new(default_leader.clone()));
+                    current_record = Some(Record::new(Some(MarcFormat::MarcXml), default_leader.clone()));
                 }
                 b"leader" => {
                     current_value.clear();

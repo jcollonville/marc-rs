@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::fields::common::{
-    CorporateNameData, MeetingNameData, PersonalNameData, PersonalNameType,
-};
-use crate::fields::{AddedEntry, MainEntry};
+use crate::datatypes::{CorporateNameData, MeetingNameData, PersonalNameData, PersonalNameType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -30,39 +27,17 @@ pub struct Author {
     pub function_code: Option<String>,
 }
 
-/// Collect all authors from main entries (1XX) and added entries (70X–71X).
-/// Order: main entries first, then added entries. Uniform titles are skipped.
-pub fn collect_authors(main_entries: &[MainEntry], added_entries: &[AddedEntry]) -> Vec<Author> {
-    let mut out = Vec::new();
-    for e in main_entries {
-        if let Some(a) = author_from_main_entry(e) {
-            out.push(a);
-        }
-    }
-    for e in added_entries {
-        if let Some(a) = author_from_added_entry(e) {
-            out.push(a);
-        }
-    }
-    out
+
+pub fn author_from_personal_name(d: &PersonalNameData) -> Author {
+    author_personal(d)
 }
 
-fn author_from_main_entry(e: &MainEntry) -> Option<Author> {
-    match e {
-        MainEntry::PersonalName(d) => Some(author_personal(d)),
-        MainEntry::CorporateName(d) => Some(author_corporate(d)),
-        MainEntry::MeetingName(d) => Some(author_meeting(d)),
-        MainEntry::UniformTitle(_) => None,
-    }
+pub fn author_from_corporate_name(d: &CorporateNameData) -> Author {
+    author_corporate(d)
 }
 
-fn author_from_added_entry(e: &AddedEntry) -> Option<Author> {
-    match e {
-        AddedEntry::PersonalName(d) => Some(author_personal(d)),
-        AddedEntry::CorporateName(d) => Some(author_corporate(d)),
-        AddedEntry::MeetingName(d) => Some(author_meeting(d)),
-        _ => None,
-    }
+pub fn author_from_meeting_name(d: &MeetingNameData) -> Author {
+    author_meeting(d)
 }
 
 fn author_personal(d: &PersonalNameData) -> Author {
@@ -245,7 +220,7 @@ mod tests {
     #[test]
     fn corporate_author() {
         let d = CorporateNameData {
-            name_type: crate::fields::common::OrganizationNameType::DirectOrder,
+            name_type: crate::datatypes::OrganizationNameType::DirectOrder,
             name: "Acme Corp.".to_string(),
             subordinate_unit: Some("Research Division".to_string()),
             location: None,
