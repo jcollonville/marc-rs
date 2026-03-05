@@ -376,6 +376,229 @@ impl Record {
         self.international_use.electronic_location_access.first().map(String::as_str)
     }
 
+    /// First ISBN number as plain string (sanitized).
+    pub fn isbn(&self) -> Option<String> {
+        self.identification
+            .isbn
+            .first()
+            .map(|i| i.sanitized_number())
+    }
+
+    /// First ISBN price/acquisition information.
+    pub fn price(&self) -> Option<String> {
+        self.identification
+            .isbn
+            .first()
+            .and_then(|i| i.price_or_acquisition.clone())
+    }
+
+    /// Call number from international holdings block (852).
+    pub fn call_number(&self) -> Option<&str> {
+        self.international_use.location_call_number.as_deref()
+    }
+
+    /// Main language of the resource (first 041/101 code).
+    pub fn lang(&self) -> Option<LanguageCode> {
+        self.coded_information
+            .language_of_resource
+            .as_ref()
+            .and_then(|l| l.codes.first().cloned())
+    }
+
+    /// Original language when the record is a translation (second 041/101 code).
+    pub fn lang_orig(&self) -> Option<LanguageCode> {
+        self.coded_information
+            .language_of_resource
+            .as_ref()
+            .and_then(|l| {
+                if l.is_translation == Some(true) && l.codes.len() >= 2 {
+                    l.codes.get(1).cloned()
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Publication date (first occurrence from publication/imprint statement).
+    pub fn publication_date(&self) -> Option<String> {
+        self.description
+            .publication_distribution_imprint
+            .as_ref()
+            .and_then(|p| p.date().map(String::from))
+    }
+
+    /// Number of pages / extent (300 $a / 215 $a).
+    pub fn nb_pages(&self) -> Option<String> {
+        self.description
+            .physical_description
+            .as_ref()
+            .map(|p| p.extent.clone())
+    }
+
+    /// Physical format / other physical details (300 $b / 215 $d).
+    pub fn format(&self) -> Option<String> {
+        self.description
+            .physical_description
+            .as_ref()
+            .and_then(|p| p.other_physical_details.clone())
+    }
+
+    /// Accompanying material (300 $e / 215 $e).
+    pub fn accompanying_material(&self) -> Option<String> {
+        self.description
+            .physical_description
+            .as_ref()
+            .and_then(|p| p.accompanying_material.clone())
+    }
+
+    /// Media type note(s) (Unimarc 337, MARC21 337, as free text).
+    pub fn media_type(&self) -> Vec<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.notes
+            .notes
+            .iter()
+            .filter_map(|n| descriptor.tag_descriptor(&n.tag).map(|d| (d, &n.data)))
+            .filter(|(d, _)| d.field == "media_type_note")
+            .map(|(_, data)| data.text.clone())
+            .collect()
+    }
+
+    /// Audience / target audience note(s) (333/521).
+    pub fn audience_type(&self) -> Vec<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.notes
+            .notes
+            .iter()
+            .filter_map(|n| descriptor.tag_descriptor(&n.tag).map(|d| (d, &n.data)))
+            .filter(|(d, _)| d.field == "audience_note" || d.field == "target_audience_note")
+            .map(|(_, data)| data.text.clone())
+            .collect()
+    }
+
+    /// Table of contents note(s) (327/505).
+    pub fn table_of_contents(&self) -> Vec<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.notes
+            .notes
+            .iter()
+            .filter_map(|n| descriptor.tag_descriptor(&n.tag).map(|d| (d, &n.data)))
+            .filter(|(d, _)| d.field == "contents_note" || d.field == "formatted_contents_note")
+            .map(|(_, data)| data.text.clone())
+            .collect()
+    }
+
+    /// Abstract / summary note (first 321/330/520).
+    pub fn abstract_text(&self) -> Option<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.notes
+            .notes
+            .iter()
+            .filter_map(|n| descriptor.tag_descriptor(&n.tag).map(|d| (d, &n.data)))
+            .find(|(d, _)| d.field == "summary_note" || d.field == "native_language_summary_note")
+            .map(|(_, data)| data.text.clone())
+    }
+
+    /// All free-text notes (3xx/5xx) as strings.
+    pub fn notes_texts(&self) -> Vec<String> {
+        self.notes
+            .notes
+            .iter()
+            .map(|n| n.data.text.clone())
+            .collect()
+    }
+
+    /// Keywords / uncontrolled subject terms (653/690/610).
+    pub fn keywords(&self) -> Vec<String> {
+        self.subject_analysis.local_subject_heading.clone()
+    }
+
+    /// Subject headings (excluding genre/form); returns only the main term.
+    pub fn subject(&self) -> Vec<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.subject_analysis
+            .subjects
+            .iter()
+            .filter_map(|s| descriptor.tag_descriptor(&s.tag).map(|d| (d, &s.data)))
+            .filter(|(d, _)| d.field != "subject_genre_form" && d.field != "index_term_genre_form")
+            .map(|(_, data)| data.term.clone())
+            .collect()
+    }
+
+    /// Genre / form terms (608/655).
+    pub fn genre(&self) -> Vec<String> {
+        let descriptor = crate::parser::descriptor_for(self.original_format.unwrap_or_default());
+        self.subject_analysis
+            .subjects
+            .iter()
+            .filter_map(|s| descriptor.tag_descriptor(&s.tag).map(|d| (d, &s.data)))
+            .filter(|(d, _)| d.field == "subject_genre_form" || d.field == "index_term_genre_form")
+            .map(|(_, data)| data.term.clone())
+            .collect()
+    }
+
+    /// Collection / series main title (first 490/225).
+    pub fn collection(&self) -> Option<String> {
+        self.description
+            .series_statement
+            .first()
+            .map(|s| s.statement.clone())
+    }
+
+    /// Collection volume number (first 490/225 $v).
+    pub fn collection_volume_number(&self) -> Option<String> {
+        self.description
+            .series_statement
+            .first()
+            .and_then(|s| s.volume.clone())
+    }
+
+    /// Alias for collection volume number, for series volume number usage.
+    pub fn series_volume_number(&self) -> Option<String> {
+        self.collection_volume_number()
+    }
+
+    /// Collection sequence number – not explicitly modeled, always `None` for now.
+    pub fn collection_sequence_number(&self) -> Option<String> {
+        None
+    }
+
+    /// Series titles, same as collection titles list.
+    pub fn series(&self) -> Vec<String> {
+        self.collections()
+    }
+
+    /// Edition statement as plain string, if present.
+    pub fn edition(&self) -> Option<String> {
+        match &self.description.edition_statement {
+            Some(crate::datatypes::edition::Edition::EditionStatement(ed)) => {
+                Some(ed.edition.clone())
+            }
+            _ => None,
+        }
+    }
+
+    /// Record creation timestamp (not modeled, always None).
+    pub fn created_at(&self) -> Option<String> {
+        None
+    }
+
+    /// Record update timestamp (not modeled, always None).
+    pub fn updated_at(&self) -> Option<String> {
+        None
+    }
+
+    /// Record archival timestamp (not modeled, always None).
+    pub fn archived_at(&self) -> Option<String> {
+        None
+    }
+
+    /// High-level record state derived from specimens (first specimen circulation_status).
+    pub fn state(&self) -> Option<String> {
+        self.specimens()
+            .into_iter()
+            .find_map(|s| s.circulation_status)
+    }
+
     /// Record identifier (001).
     pub fn record_id(&self) -> Option<&str> {
         self.identification.record_identifier.as_deref()
