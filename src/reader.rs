@@ -114,6 +114,7 @@ impl MarcReader {
         }
         Ok(records)
     }
+
 }
 
 impl<'a> IntoIterator for &'a MarcReader {

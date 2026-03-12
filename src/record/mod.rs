@@ -76,42 +76,47 @@ impl Record {
     pub fn specimens(&self) -> &[Specimen] {
         &self.local.specimens
     }
+
+  
 }
 
 /// 0XX - Identification block
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Identification {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub record_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub agency_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub record_version_date: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub isbn: Vec<Isbn>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub issn: Vec<Issn>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub national_bibliography_numbers: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub national_library_record_numbers: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub legal_deposit_numbers: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lccn: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub system_control_numbers: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub patent_numbers: Vec<PatentNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub technical_report_numbers: Vec<TechnicalReportNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub publisher_numbers: Vec<PublisherNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub codens: Vec<Coden>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub original_study_numbers: Vec<OriginalStudyNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub government_document_numbers: Vec<GovernmentDocumentNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub report_numbers: Vec<ReportNumber>,
 }
 
@@ -119,16 +124,19 @@ pub struct Identification {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Coded {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub languages: Vec<Language>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<Country>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub publication_dates: Option<(MarcDate, Option<MarcDate>)>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub target_audience: Option<TargetAudience>,
     /// MARC21 043 - Geographic area codes
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub geographic_area_codes: Vec<String>,
     /// MARC21 045 - Time period codes (raw)
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub time_period_codes: Vec<String>,
 }
 
@@ -136,11 +144,15 @@ pub struct Coded {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Description {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<Title>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub edition: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub publication: Vec<Publication>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub physical_description: Option<PhysicalDescription>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub series_statement: Option<String>,
 }
 
@@ -148,7 +160,7 @@ pub struct Description {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Notes {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub items: Vec<Note>,
 }
 
@@ -156,7 +168,7 @@ pub struct Notes {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Links {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub records: Vec<LinkedRecord>,
 }
 
@@ -164,6 +176,7 @@ pub struct Links {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssociatedTitles {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub uniform_title: Option<Title>,
 }
 
@@ -171,9 +184,9 @@ pub struct AssociatedTitles {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Indexing {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub subjects: Vec<Subject>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub classifications: Vec<Classification>,
 }
 
@@ -181,8 +194,9 @@ pub struct Indexing {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Responsibility {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main_entry: Option<Agent>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub added_entries: Vec<Agent>,
 }
 
@@ -190,14 +204,14 @@ pub struct Responsibility {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct International {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cataloging_sources: Vec<CatalogingSource>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub location_call_numbers: Vec<LocationCallNumber>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub electronic_locations: Vec<ElectronicLocation>,
     /// MARC21 850 - Holding institution
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub holding_institutions: Vec<String>,
 }
 
@@ -205,6 +219,6 @@ pub struct International {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Local {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub specimens: Vec<Specimen>,
 }

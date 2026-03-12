@@ -152,6 +152,7 @@ pub enum TargetAudience {
 #[serde(rename_all = "camelCase")]
 pub struct Isbn {
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub qualifying: Option<String>,
 }
 
@@ -159,6 +160,7 @@ pub struct Isbn {
 #[serde(rename_all = "camelCase")]
 pub struct Issn {
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub qualifying: Option<String>,
 }
 
@@ -175,24 +177,31 @@ pub enum PublicationFunction {
 #[serde(rename_all = "camelCase")]
 pub struct Title {
     pub main: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subtitle: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub parallel: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub responsibility: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Publication {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub place: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub publisher: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub function: Option<PublicationFunction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Note {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub note_type: Option<NoteType>,
     pub text: String,
 }
@@ -218,7 +227,9 @@ pub enum Agent {
 #[serde(rename_all = "camelCase")]
 pub struct Person {
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub forename: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dates: Option<String>,
 }
 
@@ -231,6 +242,7 @@ pub struct CorporateBody {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkedRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub link_type: Option<LinkType>,
     pub identifier: String,
 }
@@ -280,55 +292,85 @@ pub enum ClassificationScheme {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PhysicalDescription {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub other_physical_details: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dimensions: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub accompanying_material: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogingSource {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub agency: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transcription_conventions: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocationCallNumber {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sublocation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub call_number: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ElectronicLocation {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub public_note: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Specimen {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub library: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub section: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sub_library: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub section_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub barcode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub call_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inventory_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub creation_date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub modification_date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub loan_date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub return_date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub acquisition_date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub item_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub record_control_number: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub document_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub circulation_status: Option<String>,
 }
 
@@ -337,10 +379,15 @@ pub struct Specimen {
 #[serde(rename_all = "camelCase")]
 pub struct PatentNumber {
     pub number: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub number_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub date: Option<MarcDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub party: Option<String>,
 }
 
@@ -374,6 +421,7 @@ pub struct Coden {
 #[serde(rename_all = "camelCase")]
 pub struct OriginalStudyNumber {
     pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
 }
 
@@ -383,6 +431,7 @@ pub struct OriginalStudyNumber {
 pub struct GovernmentDocumentNumber {
     pub value: String,
     pub canceled_or_invalid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
 }
 
