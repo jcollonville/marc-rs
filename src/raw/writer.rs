@@ -16,9 +16,9 @@ impl<W: Write> BinaryWriter<W> {
         Ok(())
     }
 
-    pub fn write_record(&mut self, format: &MarcFormat, record: &Record) -> Result<(), MarcError> {
+    pub fn write_record(&mut self, format: &MarcFormat, record: &mut Record) -> Result<(), MarcError> {
         let raw = format.to_raw(record)?;
-        self.write_raw(&raw)
+        self.write_raw(raw.data())
     }
 
     pub fn flush(&mut self) -> Result<(), MarcError> {

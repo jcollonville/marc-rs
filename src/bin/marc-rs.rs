@@ -88,7 +88,7 @@ fn dump_as_json(reader: MarcReader) -> Result<(), MarcError> {
 fn dump_fields(reader: &MarcReader) -> Result<(), MarcError> {
     for (idx, view) in reader.iter().enumerate() {
         let view = view?;
-        println!("Record {} ({:?}):", idx + 1, MarcFormat::detect(view.as_raw())?);
+        println!("Record {} ({:?}):", idx + 1, MarcFormat::detect(view.as_raw(), reader.encoding_override())?);
         println!("{view}");
         println!();
     }
@@ -112,11 +112,11 @@ fn dump_as_xml(reader: &MarcReader) -> Result<(), MarcError> {
 
 fn dump_as_iso2709(reader: MarcReader, spec: &str) -> Result<(), MarcError> {
     let target = parse_target_format(spec)?;
-    let records = reader.into_records()?;
+    let mut records = reader.into_records()?;
     let stdout = io::stdout();
     let mut writer = BinaryWriter::new(stdout.lock());
-    for record in &records {
-        writer.write_record(&target, record)?;
+    for mut record in records {
+        writer.write_record(&target, &mut record)?;
     }
     writer.flush()?;
     Ok(())

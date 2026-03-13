@@ -22,11 +22,38 @@ impl<'a> RawRecord<'a> {
         }
         Ok(&self.0[0..24])
     }
+
 }
 
 impl<'a> Display for RawRecord<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         raw_record_display(self, None, f)
+    }
+}
+
+pub struct OwnedRawRecord(pub(crate) Vec<u8>);
+
+impl OwnedRawRecord {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self(data)
+    }
+    pub fn leader(&self) -> Result<&[u8], MarcError> {
+        if self.0.len() < 24 {
+            return Err(MarcError::InvalidRecord("record shorter than leader"));
+        }
+        Ok(&self.0[0..24])
+    }
+    pub fn leader_mut(&mut self) -> Result<&mut [u8], MarcError> {
+        if self.0.len() < 24 {
+            return Err(MarcError::InvalidRecord("record shorter than leader"));
+        }
+        Ok(&mut self.0[0..24])
+    }
+    pub fn data(&self) -> &[u8] {
+        &self.0
+    }
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        &mut self.0
     }
 }
 
@@ -76,11 +103,11 @@ fn raw_record_display(
                 )?;
             }
             RawField::Data { tag, body, .. } => {
-                let format = match MarcFormat::detect(raw) {
+                let format = match MarcFormat::detect(raw, encoding_override) {
                     Ok(fmt) => fmt,
                     Err(_) => continue,
                 };
-                let encoding = format.effective_encoding(encoding_override);
+                // let encoding = format.effective_encoding(encoding_override);
                 let mut pos = 0;
                 while pos < body.len() {
                     if body[pos] == 0x1F {
@@ -94,7 +121,7 @@ fn raw_record_display(
                             end += 1;
                         }
                         let slice = &body[start..end];
-                        let value = encoding.decode(slice).unwrap_or_else(|_| "".into());
+                        let value = format.encoding().decode(slice).unwrap_or_else(|_| "".into());
                         write!(
                             f,
                             "{} ${}: {}\n",

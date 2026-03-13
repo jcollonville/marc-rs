@@ -40,8 +40,7 @@ impl<W: Write> XmlWriter<W> {
         raw: &RawRecord,
         encoding_override: Option<Encoding>,
     ) -> Result<(), MarcError> {
-        let format = MarcFormat::detect(raw)?;
-        let encoding = format.effective_encoding(encoding_override);
+        let format = MarcFormat::detect(raw, encoding_override)?;
 
         writeln!(self.writer, "  <record>")?;
 
@@ -55,7 +54,7 @@ impl<W: Write> XmlWriter<W> {
                 RawField::Control { tag, data } => {
                     let tag_str = String::from_utf8_lossy(&tag);
                     let clean = strip_field_terminator(data);
-                    let text = encoding.decode(clean).unwrap_or_else(|_| "".into());
+                    let text = format.encoding().decode(clean).unwrap_or_else(|_| "".into());
                     writeln!(
                         self.writer,
                         "    <controlfield tag=\"{tag_str}\">{}</controlfield>",
@@ -90,7 +89,7 @@ impl<W: Write> XmlWriter<W> {
                                 end += 1;
                             }
                             let text =
-                                encoding.decode(&body[start..end]).unwrap_or_else(|_| "".into());
+                                format.encoding().decode(&body[start..end]).unwrap_or_else(|_| "".into());
                             writeln!(
                                 self.writer,
                                 "      <subfield code=\"{}\">{}</subfield>",
@@ -117,7 +116,7 @@ impl<W: Write> XmlWriter<W> {
     /// Convert a semantic `Record` to ISO2709 via the given format, then write as XML.
     pub fn write_record(&mut self, format: &MarcFormat, record: &Record) -> Result<(), MarcError> {
         let raw_bytes = format.to_raw(record)?;
-        let raw = RawRecord(&raw_bytes);
+        let raw = RawRecord(&raw_bytes.data());
         self.write_raw(&raw, None)
     }
 

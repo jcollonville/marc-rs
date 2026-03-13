@@ -103,13 +103,8 @@ impl MarcReader {
         for view in BinaryReader::with_encoding(&self.data, self.encoding_override) {
             let view = view?;
             let raw = view.as_raw();
-            let mut format = MarcFormat::detect(raw)?;
-            if let Some(enc) = self.encoding_override {
-                format = match format {
-                    MarcFormat::Marc21(_) => MarcFormat::Marc21(enc),
-                    MarcFormat::Unimarc(_) => MarcFormat::Unimarc(enc),
-                };
-            }
+            let format = MarcFormat::detect(raw, self.encoding_override)?;
+            
             records.push(format.to_record(raw)?);
         }
         Ok(records)
