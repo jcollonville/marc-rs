@@ -2,6 +2,12 @@
 name = "marc-rs-derive"
 version = "0.1.0"
 edition = "2021"
+authors = ["Jean Collonvillé <jcollonville@b-612.fr>"]
+description = "Derive macros for marc-rs"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jcollonville/marc-rs"
+keywords = ["marc", "marc21", "unimarc", "derive", "macro"]
+categories = ["derive", "macro"]
 
 [lib]
 proc-macro = true
