@@ -1,0 +1,764 @@
+{
+  "name": "marc21",
+  "leader": [
+    { "position": 5, "target": "status", "rules": [
+      { "raw": "n", "value": "new" },
+      { "raw": "c", "value": "corrected" },
+      { "raw": "d", "value": "deleted" }
+    ]},
+    { "position": 6, "target": "record_type", "rules": [
+      { "raw": "a", "value": "languageMaterial" },
+      { "raw": "c", "value": "notatedMusic" },
+      { "raw": "e", "value": "cartographicMaterial" },
+      { "raw": "t", "value": "manuscript" },
+      { "raw": "g", "value": "projectedMedium" },
+      { "raw": "i", "value": "sound" },
+      { "raw": "j", "value": "sound" },
+      { "raw": "k", "value": "visual" },
+      { "raw": "m", "value": "computerFile" },
+      { "raw": "p", "value": "mixedMaterials" }
+    ]},
+    { "position": 7, "target": "bibliographic_level", "rules": [
+      { "raw": "m", "value": "monograph" },
+      { "raw": "s", "value": "serial" },
+      { "raw": "a", "value": "monographicComponent" },
+      { "raw": "b", "value": "serialComponent" },
+      { "raw": "c", "value": "collection" },
+      { "raw": "d", "value": "subunit" },
+      { "raw": "i", "value": "integratingResource" }
+    ]},
+    { "position": 8, "target": "type_of_control", "default_raw": " ", "rules": [
+      { "raw": " ", "value": "standard" },
+      { "raw": "a", "value": "archival" }
+    ]},
+    { "position": 9, "target": "character_coding_scheme", "default_raw": " ", "rules": [
+      { "raw": " ", "value": "marc8" },
+      { "raw": "a", "value": "utf8" }
+    ]},
+    { "position": 17, "target": "encoding_level", "default_raw": " ", "rules": [
+      { "raw": " ", "value": "full" },
+      { "raw": "3", "value": "abbreviated" },
+      { "raw": "u", "value": "unknown" }
+    ]},
+    { "position": 18, "target": "descriptive_cataloging_form", "default_raw": " ", "rules": [
+      { "raw": "a", "value": "aacr2" },
+      { "raw": "i", "value": "isbd" },
+      { "raw": "r", "value": "rda" },
+      { "raw": " ", "value": "non_isbd" }
+    ]},
+    { "position": 19, "target": "multipart_resource_level", "default_raw": " ", "rules": [
+      { "raw": " ", "value": "not_specified" }
+    ]}
+  ],
+  "directory_map": "4500",
+  "encoding_indicator": {
+    "leader_position": 9,
+    "rules": [
+      { "encoding": "utf8", "raw": "a" },
+      { "encoding": "marc8", "raw": " " }
+    ],
+    "default_raw": " "
+  },
+  "rules": {
+    "languages": {
+      "entries": [
+        { "raw": "fre", "value": "french" },
+        { "raw": "fra", "value": "french" },
+        { "raw": "eng", "value": "english" },
+        { "raw": "ger", "value": "german" },
+        { "raw": "deu", "value": "german" },
+        { "raw": "spa", "value": "spanish" },
+        { "raw": "ita", "value": "italian" },
+        { "raw": "por", "value": "portuguese" },
+        { "raw": "jpn", "value": "japanese" },
+        { "raw": "chi", "value": "chinese" },
+        { "raw": "zho", "value": "chinese" },
+        { "raw": "rus", "value": "russian" },
+        { "raw": "ara", "value": "arabic" },
+        { "raw": "dut", "value": "dutch" },
+        { "raw": "nld", "value": "dutch" },
+        { "raw": "swe", "value": "swedish" },
+        { "raw": "nor", "value": "norwegian" },
+        { "raw": "dan", "value": "danish" },
+        { "raw": "fin", "value": "finnish" },
+        { "raw": "pol", "value": "polish" },
+        { "raw": "cze", "value": "czech" },
+        { "raw": "ces", "value": "czech" },
+        { "raw": "hun", "value": "hungarian" },
+        { "raw": "rum", "value": "romanian" },
+        { "raw": "ron", "value": "romanian" },
+        { "raw": "tur", "value": "turkish" },
+        { "raw": "kor", "value": "korean" },
+        { "raw": "lat", "value": "latin" },
+        { "raw": "gre", "value": "greek" },
+        { "raw": "ell", "value": "greek" },
+        { "raw": "hrv", "value": "croatian" },
+        { "raw": "scr", "value": "croatian" },
+        { "raw": "hin", "value": "hindi" },
+        { "raw": "heb", "value": "hebrew" },
+        { "raw": "per", "value": "persian" },
+        { "raw": "fas", "value": "persian" },
+        { "raw": "cat", "value": "catalan" },
+        { "raw": "tha", "value": "thai" },
+        { "raw": "vie", "value": "vietnamese" },
+        { "raw": "ind", "value": "indonesian" },
+        { "raw": "may", "value": "malay" },
+        { "raw": "msa", "value": "malay" }
+      ]
+    },
+    "countries": {
+      "entries": [
+        { "raw": "fr", "value": "france" },
+        { "raw": "fr", "value": "france" },
+        { "raw": "us", "value": "unitedStates" },
+        { "raw": "xxu", "value": "unitedStates" },
+        { "raw": "uk", "value": "unitedKingdom" },
+        { "raw": "xxk", "value": "unitedKingdom" },
+        { "raw": "de", "value": "germany" },
+        { "raw": "gw", "value": "germany" },
+        { "raw": "es", "value": "spain" },
+        { "raw": "sp", "value": "spain" },
+        { "raw": "it", "value": "italy" },
+        { "raw": "it", "value": "italy" },
+        { "raw": "jp", "value": "japan" },
+        { "raw": "ja", "value": "japan" },
+        { "raw": "cn", "value": "china" },
+        { "raw": "cc", "value": "china" },
+        { "raw": "ru", "value": "russia" },
+        { "raw": "ru", "value": "russia" },
+        { "raw": "br", "value": "brazil" },
+        { "raw": "bl", "value": "brazil" },
+        { "raw": "ca", "value": "canada" },
+        { "raw": "xxc", "value": "canada" },
+        { "raw": "au", "value": "australia" },
+        { "raw": "at", "value": "australia" },
+        { "raw": "nl", "value": "netherlands" },
+        { "raw": "ne", "value": "netherlands" },
+        { "raw": "be", "value": "belgium" },
+        { "raw": "be", "value": "belgium" },
+        { "raw": "ch", "value": "switzerland" },
+        { "raw": "sz", "value": "switzerland" },
+        { "raw": "at", "value": "austria" },
+        { "raw": "au", "value": "austria" },
+        { "raw": "pt", "value": "portugal" },
+        { "raw": "po", "value": "portugal" },
+        { "raw": "pl", "value": "poland" },
+        { "raw": "pl", "value": "poland" },
+        { "raw": "in", "value": "india" },
+        { "raw": "ii", "value": "india" },
+        { "raw": "mx", "value": "mexico" },
+        { "raw": "mx", "value": "mexico" },
+        { "raw": "ar", "value": "argentina" },
+        { "raw": "ag", "value": "argentina" },
+        { "raw": "kr", "value": "southKorea" },
+        { "raw": "ko", "value": "southKorea" },
+        { "raw": "se", "value": "sweden" },
+        { "raw": "sw", "value": "sweden" },
+        { "raw": "no", "value": "norway" },
+        { "raw": "no", "value": "norway" },
+        { "raw": "dk", "value": "denmark" },
+        { "raw": "dk", "value": "denmark" },
+        { "raw": "fi", "value": "finland" },
+        { "raw": "fi", "value": "finland" }
+      ]
+    },
+    "audience": {
+      "default": "unknown",
+      "entries": [
+        { "raw": "a", "value": "juvenile" },
+        { "raw": "b", "value": "juvenile" },
+        { "raw": "c", "value": "juvenile" },
+        { "raw": "d", "value": "youngAdult" },
+        { "raw": "e", "value": "general" },
+        { "raw": "f", "value": "specialized" },
+        { "raw": "g", "value": "general" },
+        { "raw": "j", "value": "juvenile" }
+      ]
+    }
+  },
+  "blocks": [
+    {
+      "id": "identification",
+      "label": "0XX - Identification",
+      "fields": [
+        { "tag": "001", "type": "control", "target": "identification.record_id", "mandatory": true },
+        { "tag": "003", "type": "control", "target": "identification.agency_id" },
+        { "tag": "005", "type": "control", "target": "identification.record_version_date" },
+        { "tag": "008", "type": "control", "length": 40, "mandatory": true, "slice": { "offset": 0, "length": 6 }, "target": "coded.date_entered_on_file", "reverse": false },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 6, "length": 1 }, "target": "coded.type_of_date" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 7, "length": 4 }, "target": "coded.date1" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 11, "length": 4 }, "target": "coded.date2" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 15, "length": 3 }, "target": "coded.place_of_publication_code" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 35, "length": 3 }, "target": "coded.languages", "rules": "languages", "reverse": false },
+        {
+          "tag": "010",
+          "subfields": [
+            { "code": "a", "target": "identification.lccn" }
+          ]
+        },
+        {
+          "tag": "013",
+          "subfields": [
+            { "code": "a", "target": "identification.patent_numbers.number" },
+            { "code": "b", "target": "identification.patent_numbers.country" },
+            { "code": "c", "target": "identification.patent_numbers.number_type" },
+            { "code": "d", "target": "identification.patent_numbers.date" },
+            { "code": "e", "target": "identification.patent_numbers.status" },
+            { "code": "f", "target": "identification.patent_numbers.party" }
+          ]
+        },
+        {
+          "tag": "015",
+          "subfields": [
+            { "code": "a", "target": "identification.national_bibliography_numbers" }
+          ]
+        },
+        {
+          "tag": "016",
+          "subfields": [
+            { "code": "a", "target": "identification.national_library_record_numbers" }
+          ]
+        },
+        {
+          "tag": "020",
+          "subfields": [
+            { "code": "a", "target": "identification.isbn.value" },
+            { "code": "q", "target": "identification.isbn.qualifying" }
+          ]
+        },
+        {
+          "tag": "022",
+          "subfields": [
+            { "code": "a", "target": "identification.issn.value" },
+            { "code": "q", "target": "identification.issn.qualifying" }
+          ]
+        },
+        {
+          "tag": "027",
+          "subfields": [
+            { "code": "a", "target": "identification.technical_report_numbers.value" }
+          ]
+        },
+        {
+          "tag": "028",
+          "subfields": [
+            { "code": "a", "target": "identification.publisher_numbers.value" },
+            { "code": "b", "target": "identification.publisher_numbers.source" }
+          ]
+        },
+        {
+          "tag": "030",
+          "subfields": [
+            { "code": "a", "target": "identification.codens.value" }
+          ]
+        },
+        {
+          "tag": "035",
+          "subfields": [
+            { "code": "a", "target": "identification.system_control_numbers" }
+          ]
+        },
+        {
+          "tag": "036",
+          "subfields": [
+            { "code": "a", "target": "identification.original_study_numbers.value" },
+            { "code": "b", "target": "identification.original_study_numbers.source" }
+          ]
+        },
+        {
+          "tag": "086",
+          "subfields": [
+            { "code": "a", "target": "identification.government_document_numbers.value" },
+            { "code": "2", "target": "identification.government_document_numbers.source" }
+          ]
+        },
+        {
+          "tag": "088",
+          "subfields": [
+            { "code": "a", "target": "identification.report_numbers.value" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coded",
+      "label": "0XX - Coded information",
+      "fields": [
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 22, "length": 1 }, "target": "coded.target_audience", "rules": "audience" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 38, "length": 1 }, "target": "coded.modified_record" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 39, "length": 1 }, "target": "coded.cataloging_source_code" },
+        {
+          "tag": "040",
+          "subfields": [
+            { "code": "a", "target": "international.cataloging_sources.agency" },
+            { "code": "b", "target": "international.cataloging_sources.cataloging_language" },
+            { "code": "c", "target": "international.cataloging_sources.transcribing_agency" },
+            { "code": "d", "target": "international.cataloging_sources.modifying_agencies" },
+            { "code": "e", "target": "international.cataloging_sources.describing_conventions" }
+          ]
+        },
+        {
+          "tag": "041",
+          "indicators": ["0", " "],
+          "subfields": [
+            { "code": "a", "target": "coded.languages", "rules": "languages" },
+            { "code": "h", "target": "coded.original_languages", "rules": "languages" }
+          ]
+        },
+        {
+          "tag": "043",
+          "subfields": [
+            { "code": "a", "target": "coded.geographic_area_codes" }
+          ]
+        },
+        {
+          "tag": "045",
+          "subfields": [
+            { "code": "a", "target": "coded.time_period_codes" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "description",
+      "label": "2XX - Descriptive information",
+      "fields": [
+        {
+          "tag": "222",
+          "subfields": [
+            { "code": "a", "target": "associated_titles.key_title.main" },
+            { "code": "b", "target": "associated_titles.key_title.subtitle" }
+          ]
+        },
+        {
+          "tag": "240",
+          "subfields": [
+            { "code": "a", "target": "associated_titles.uniform_title.main", "trim": "/" },
+            { "code": "b", "target": "associated_titles.uniform_title.subtitle", "trim": "/" },
+            { "code": "c", "target": "associated_titles.uniform_title.responsibility" }
+          ]
+        },
+        {
+          "tag": "245",
+          "mandatory": true,
+          "indicators": ["1", "0"],
+          "subfields": [
+            { "code": "a", "target": "description.title.main", "trim": "/" },
+            { "code": "b", "target": "description.title.subtitle", "trim": "/" },
+            { "code": "c", "target": "description.title.responsibility" },
+            { "code": "h", "target": "description.title.medium" },
+            { "code": "n", "target": "description.title.number_of_part" },
+            { "code": "p", "target": "description.title.name_of_part" }
+          ]
+        },
+        {
+          "tag": "246",
+          "subfields": [
+            { "code": "a", "target": "description.varying_titles.title" },
+            { "code": "b", "target": "description.varying_titles.remainder" }
+          ]
+        },
+        {
+          "tag": "247",
+          "subfields": [
+            { "code": "a", "target": "associated_titles.former_titles.main" },
+            { "code": "b", "target": "associated_titles.former_titles.subtitle" }
+          ]
+        },
+        {
+          "tag": "250",
+          "subfields": [
+            { "code": "a", "target": "description.edition" }
+          ]
+        },
+        {
+          "tag": "260",
+          "subfields": [
+            { "code": "a", "target": "description.publication.place", "trim": "[]" },
+            { "code": "b", "target": "description.publication.publisher", "trim": "[]" },
+            { "code": "c", "target": "description.publication.date", "trim": "[]" },
+            { "code": "e", "target": "description.publication.manufacture_place" },
+            { "code": "f", "target": "description.publication.manufacturer" },
+            { "code": "g", "target": "description.publication.manufacture_date" }
+          ]
+        },
+        {
+          "tag": "264",
+          "subfields": [
+            { "code": "a", "target": "description.publication.place", "trim": "[]" },
+            { "code": "b", "target": "description.publication.publisher", "trim": "[]" },
+            { "code": "c", "target": "description.publication.date", "trim": "[]" }
+          ]
+        },
+        {
+          "tag": "300",
+          "subfields": [
+            { "code": "a", "target": "description.physical_description.extent" },
+            { "code": "b", "target": "description.physical_description.other_physical_details" },
+            { "code": "c", "target": "description.physical_description.dimensions" },
+            { "code": "e", "target": "description.physical_description.accompanying_material" }
+          ]
+        },
+        {
+          "tag": "310",
+          "subfields": [
+            { "code": "a", "target": "description.frequency" }
+          ]
+        },
+        {
+          "tag": "490",
+          "subfields": [
+            { "code": "a", "target": "description.series.title" },
+            { "code": "v", "target": "description.series.volume" },
+            { "code": "x", "target": "description.series.issn" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "label": "5XX - Notes",
+      "fields": [
+        {
+          "tag": "500",
+          "defaults": { "note_type": "general" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "502",
+          "defaults": { "note_type": "dissertation" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "504",
+          "defaults": { "note_type": "bibliography" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "505",
+          "defaults": { "note_type": "contents" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "508",
+          "defaults": { "note_type": "credits" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "520",
+          "defaults": { "note_type": "summary" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "534",
+          "defaults": { "note_type": "reproduction" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "538",
+          "defaults": { "note_type": "systemDetails" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "546",
+          "defaults": { "note_type": "languageNote" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        },
+        {
+          "tag": "586",
+          "defaults": { "note_type": "awards" },
+          "subfields": [
+            { "code": "a", "target": "notes.items.text" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "indexing",
+      "label": "6XX - Subject indexing",
+      "fields": [
+        {
+          "tag": "080",
+          "defaults": { "scheme": "udc" },
+          "subfields": [
+            { "code": "a", "target": "indexing.classifications.number" }
+          ]
+        },
+        {
+          "tag": "082",
+          "indicators": ["0", "0"],
+          "defaults": { "scheme": "dewey" },
+          "subfields": [
+            { "code": "a", "target": "indexing.classifications.number" }
+          ]
+        },
+        {
+          "tag": "084",
+          "subfields": [
+            { "code": "a", "target": "indexing.classifications.number" },
+            { "code": "2", "target": "indexing.classifications.scheme" }
+          ]
+        },
+        {
+          "tag": "600",
+          "defaults": { "heading_type": "personal" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "610",
+          "defaults": { "heading_type": "corporate" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "611",
+          "defaults": { "heading_type": "meeting" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "630",
+          "defaults": { "heading_type": "uniformTitle" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "650",
+          "indicators": [" ", "0"],
+          "defaults": { "heading_type": "topical" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "651",
+          "defaults": { "heading_type": "geographic" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        },
+        {
+          "tag": "653",
+          "subfields": [
+            { "code": "a", "target": "indexing.uncontrolled_terms" }
+          ]
+        },
+        {
+          "tag": "655",
+          "defaults": { "heading_type": "genre" },
+          "subfields": [
+            { "code": "a", "target": "indexing.subjects.value" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "responsibility",
+      "label": "1XX/7XX - Responsibility",
+      "fields": [
+        {
+          "tag": "100",
+          "type": "person",
+          "indicators": ["1", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.main_entry.name" },
+            { "code": "b", "target": "responsibility.main_entry.numeration" },
+            { "code": "c", "target": "responsibility.main_entry.titles_associated" },
+            { "code": "d", "target": "responsibility.main_entry.dates" },
+            { "code": "q", "target": "responsibility.main_entry.fuller_form" },
+            { "code": "e", "target": "responsibility.main_entry.relator" }
+          ]
+        },
+        {
+          "tag": "110",
+          "type": "corporate_body",
+          "indicators": ["2", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.main_entry.name" },
+            { "code": "b", "target": "responsibility.main_entry.subordinate_unit" },
+            { "code": "c", "target": "responsibility.main_entry.location" },
+            { "code": "d", "target": "responsibility.main_entry.date" }
+          ]
+        },
+        {
+          "tag": "111",
+          "type": "meeting",
+          "indicators": ["2", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.main_entry.name" },
+            { "code": "c", "target": "responsibility.main_entry.location" },
+            { "code": "d", "target": "responsibility.main_entry.date" },
+            { "code": "e", "target": "responsibility.main_entry.subordinate_unit" }
+          ]
+        },
+        {
+          "tag": "700",
+          "type": "person",
+          "indicators": ["1", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.added_entries.name" },
+            { "code": "b", "target": "responsibility.added_entries.numeration" },
+            { "code": "c", "target": "responsibility.added_entries.titles_associated" },
+            { "code": "d", "target": "responsibility.added_entries.dates" },
+            { "code": "q", "target": "responsibility.added_entries.fuller_form" },
+            { "code": "e", "target": "responsibility.added_entries.relator" }
+          ]
+        },
+        {
+          "tag": "710",
+          "type": "corporate_body",
+          "indicators": ["2", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.added_entries.name" },
+            { "code": "b", "target": "responsibility.added_entries.subordinate_unit" },
+            { "code": "c", "target": "responsibility.added_entries.location" },
+            { "code": "d", "target": "responsibility.added_entries.date" }
+          ]
+        },
+        {
+          "tag": "711",
+          "type": "meeting",
+          "indicators": ["2", " "],
+          "subfields": [
+            { "code": "a", "target": "responsibility.added_entries.name" },
+            { "code": "c", "target": "responsibility.added_entries.location" },
+            { "code": "d", "target": "responsibility.added_entries.date" },
+            { "code": "e", "target": "responsibility.added_entries.subordinate_unit" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "label": "7XX - Links",
+      "fields": [
+        {
+          "tag": "773",
+          "indicators": ["0", " "],
+          "defaults": { "link_type": "isPartOf" },
+          "subfields": [
+            { "code": "w", "target": "links.records.identifier" },
+            { "code": "a", "target": "links.records.title" },
+            { "code": "b", "target": "links.records.edition" },
+            { "code": "g", "target": "links.records.relationship_info" },
+            { "code": "x", "target": "links.records.issn" }
+          ]
+        },
+        {
+          "tag": "777",
+          "defaults": { "link_type": "issuedWith" },
+          "subfields": [
+            { "code": "w", "target": "links.records.identifier" },
+            { "code": "a", "target": "links.records.title" },
+            { "code": "b", "target": "links.records.edition" },
+            { "code": "c", "target": "links.records.qualifier" },
+            { "code": "x", "target": "links.records.issn" }
+          ]
+        },
+        {
+          "tag": "780",
+          "defaults": { "link_type": "preceding" },
+          "subfields": [
+            { "code": "w", "target": "links.records.identifier" },
+            { "code": "a", "target": "links.records.title" },
+            { "code": "b", "target": "links.records.edition" },
+            { "code": "c", "target": "links.records.qualifier" },
+            { "code": "g", "target": "links.records.relationship_info" },
+            { "code": "x", "target": "links.records.issn" }
+          ]
+        },
+        {
+          "tag": "785",
+          "defaults": { "link_type": "succeeding" },
+          "subfields": [
+            { "code": "w", "target": "links.records.identifier" },
+            { "code": "a", "target": "links.records.title" },
+            { "code": "b", "target": "links.records.edition" },
+            { "code": "c", "target": "links.records.qualifier" },
+            { "code": "g", "target": "links.records.relationship_info" },
+            { "code": "x", "target": "links.records.issn" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "international",
+      "label": "8XX - International data",
+      "fields": [
+        {
+          "tag": "850",
+          "subfields": [
+            { "code": "a", "target": "international.holding_institutions" }
+          ]
+        },
+        {
+          "tag": "852",
+          "subfields": [
+            { "code": "a", "target": "international.location_call_numbers.location" },
+            { "code": "b", "target": "international.location_call_numbers.sublocation" },
+            { "code": "c", "target": "international.location_call_numbers.shelving_location" },
+            { "code": "h", "target": "international.location_call_numbers.classification_part" },
+            { "code": "j", "target": "international.location_call_numbers.call_number" },
+            { "code": "n", "target": "international.location_call_numbers.country_code" },
+            { "code": "p", "target": "international.location_call_numbers.piece_designation" },
+            { "code": "t", "target": "international.location_call_numbers.copy_number" }
+          ]
+        },
+        {
+          "tag": "856",
+          "subfields": [
+            { "code": "u", "target": "international.electronic_locations.uri" },
+            { "code": "z", "target": "international.electronic_locations.public_note" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "local",
+      "label": "9XX - National and local data",
+      "fields": [
+        {
+          "tag": "995",
+          "subfields": [
+            { "code": "a", "target": "local.specimens.library" },
+            { "code": "b", "target": "local.specimens.section" },
+            { "code": "c", "target": "local.specimens.sub_library" },
+            { "code": "d", "target": "local.specimens.section_code" },
+            { "code": "f", "target": "local.specimens.barcode" },
+            { "code": "k", "target": "local.specimens.call_number" },
+            { "code": "l", "target": "local.specimens.inventory_number" },
+            { "code": "m", "target": "local.specimens.creation_date" },
+            { "code": "n", "target": "local.specimens.modification_date" },
+            { "code": "r", "target": "local.specimens.item_type" },
+            { "code": "t", "target": "local.specimens.record_control_number" },
+            { "code": "v", "target": "local.specimens.document_type" },
+            { "code": "w", "target": "local.specimens.circulation_status" }
+          ]
+        }
+      ]
+    }
+  ]
+}
