@@ -16,11 +16,7 @@ struct XmlField {
 
 enum XmlFieldData {
     Control(String),
-    Data {
-        ind1: u8,
-        ind2: u8,
-        subfields: Vec<(u8, String)>,
-    },
+    Data { ind1: u8, ind2: u8, subfields: Vec<(u8, String)> },
 }
 
 impl XmlReader {
@@ -75,20 +71,14 @@ impl XmlReader {
                             let subfields = Self::parse_subfields(reader)?;
                             fields.push(XmlField {
                                 tag,
-                                data: XmlFieldData::Data {
-                                    ind1,
-                                    ind2,
-                                    subfields,
-                                },
+                                data: XmlFieldData::Data { ind1, ind2, subfields },
                             });
                         }
                         _ => {}
                     }
                 }
                 Ok(Event::End(ref e)) if e.local_name().as_ref() == b"record" => break,
-                Ok(Event::Eof) => {
-                    return Err(MarcError::Xml("unexpected EOF inside <record>".into()))
-                }
+                Ok(Event::Eof) => return Err(MarcError::Xml("unexpected EOF inside <record>".into())),
                 Err(e) => return Err(MarcError::Xml(e.to_string())),
                 _ => {}
             }
@@ -98,9 +88,7 @@ impl XmlReader {
         build_iso2709_from_xml(&leader, &fields)
     }
 
-    fn parse_subfields<R: BufRead>(
-        reader: &mut Reader<R>,
-    ) -> Result<Vec<(u8, String)>, MarcError> {
+    fn parse_subfields<R: BufRead>(reader: &mut Reader<R>) -> Result<Vec<(u8, String)>, MarcError> {
         let mut buf = Vec::new();
         let mut subfields = Vec::new();
 
@@ -116,9 +104,7 @@ impl XmlReader {
                     subfields.push((code, String::new()));
                 }
                 Ok(Event::End(ref e)) if e.local_name().as_ref() == b"datafield" => break,
-                Ok(Event::Eof) => {
-                    return Err(MarcError::Xml("unexpected EOF inside <datafield>".into()))
-                }
+                Ok(Event::Eof) => return Err(MarcError::Xml("unexpected EOF inside <datafield>".into())),
                 Err(e) => return Err(MarcError::Xml(e.to_string())),
                 _ => {}
             }
@@ -143,10 +129,7 @@ fn read_element_text<R: BufRead>(reader: &mut Reader<R>) -> Result<String, MarcE
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Text(e)) => {
-                text.push_str(
-                    &e.unescape()
-                        .map_err(|e| MarcError::Xml(e.to_string()))?,
-                );
+                text.push_str(&e.unescape().map_err(|e| MarcError::Xml(e.to_string()))?);
             }
             Ok(Event::CData(e)) => {
                 text.push_str(&String::from_utf8_lossy(&e));
@@ -162,20 +145,14 @@ fn read_element_text<R: BufRead>(reader: &mut Reader<R>) -> Result<String, MarcE
 }
 
 fn attr_value(e: &BytesStart, name: &[u8]) -> Option<String> {
-    e.attributes()
-        .flatten()
-        .find(|a| a.key.as_ref() == name)
-        .map(|a| String::from_utf8_lossy(&a.value).into_owned())
+    e.attributes().flatten().find(|a| a.key.as_ref() == name).map(|a| String::from_utf8_lossy(&a.value).into_owned())
 }
 
 fn parse_tag(e: &BytesStart) -> Result<[u8; 3], MarcError> {
-    let val = attr_value(e, b"tag")
-        .ok_or_else(|| MarcError::Xml("missing tag attribute".into()))?;
+    let val = attr_value(e, b"tag").ok_or_else(|| MarcError::Xml("missing tag attribute".into()))?;
     let bytes = val.as_bytes();
     if bytes.len() != 3 {
-        return Err(MarcError::Xml(format!(
-            "tag must be exactly 3 characters, got '{val}'"
-        )));
+        return Err(MarcError::Xml(format!("tag must be exactly 3 characters, got '{val}'")));
     }
     let mut tag = [0u8; 3];
     tag.copy_from_slice(bytes);
@@ -183,15 +160,11 @@ fn parse_tag(e: &BytesStart) -> Result<[u8; 3], MarcError> {
 }
 
 fn parse_indicator(e: &BytesStart, name: &[u8]) -> u8 {
-    attr_value(e, name)
-        .and_then(|v| v.bytes().next())
-        .unwrap_or(b' ')
+    attr_value(e, name).and_then(|v| v.bytes().next()).unwrap_or(b' ')
 }
 
 fn parse_subfield_code(e: &BytesStart) -> u8 {
-    attr_value(e, b"code")
-        .and_then(|v| v.bytes().next())
-        .unwrap_or(b'a')
+    attr_value(e, b"code").and_then(|v| v.bytes().next()).unwrap_or(b'a')
 }
 
 /// Builds a valid ISO2709 byte sequence from XML-parsed fields.
@@ -208,11 +181,7 @@ fn build_iso2709_from_xml(leader_str: &str, fields: &[XmlField]) -> Result<Vec<u
                 fb.extend_from_slice(text.as_bytes());
                 fb.push(0x1E);
             }
-            XmlFieldData::Data {
-                ind1,
-                ind2,
-                subfields,
-            } => {
+            XmlFieldData::Data { ind1, ind2, subfields } => {
                 fb.push(*ind1);
                 fb.push(*ind2);
                 for (code, value) in subfields {
@@ -247,9 +216,7 @@ fn build_iso2709_from_xml(leader_str: &str, fields: &[XmlField]) -> Result<Vec<u
 
     let record_length = base_address + field_data.len() + 1;
     if record_length > 99999 {
-        return Err(MarcError::InvalidRecord(
-            "record too long for ISO2709 leader",
-        ));
+        return Err(MarcError::InvalidRecord("record too long for ISO2709 leader"));
     }
     leader_bytes[0..5].copy_from_slice(format!("{record_length:0>5}").as_bytes());
     leader_bytes[12..17].copy_from_slice(format!("{base_address:0>5}").as_bytes());

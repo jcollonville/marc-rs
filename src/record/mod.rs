@@ -42,8 +42,7 @@ macro_rules! impl_from_rule_value {
     ($type:ty, $other:path) => {
         impl FromRuleValue for $type {
             fn from_rule_value(s: &str) -> Self {
-                serde_json::from_value(serde_json::Value::String(s.to_string()))
-                    .unwrap_or_else(|_| $other(s.to_string()))
+                serde_json::from_value(serde_json::Value::String(s.to_string())).unwrap_or_else(|_| $other(s.to_string()))
             }
             fn to_rule_value(&self) -> String {
                 match serde_json::to_value(self).ok() {
@@ -70,8 +69,7 @@ macro_rules! impl_from_rule_value_char {
     ($type:ty, $other:path) => {
         impl FromRuleValue for $type {
             fn from_rule_value(s: &str) -> Self {
-                serde_json::from_value(serde_json::Value::String(s.to_string()))
-                    .unwrap_or_else(|_| $other(s.chars().next().unwrap_or(' ')))
+                serde_json::from_value(serde_json::Value::String(s.to_string())).unwrap_or_else(|_| $other(s.chars().next().unwrap_or(' ')))
             }
             fn to_rule_value(&self) -> String {
                 match serde_json::to_value(self).ok() {
@@ -96,15 +94,33 @@ macro_rules! impl_marc_leaf {
     ($ty:ty) => {
         impl MarcPaths for $ty {
             const IS_LEAF: bool = true;
-            fn from_marc_str(s: &str) -> Self { <$ty as FromRuleValue>::from_rule_value(s) }
-            fn to_marc_str(&self) -> String { <$ty as FromRuleValue>::to_rule_value(self) }
-            fn marc_set(&mut self, _: &str, _: &str) -> bool { false }
-            fn marc_get_option(&self, _: &str) -> Option<String> { None }
-            fn marc_get_vec(&self, _: &str) -> Option<Vec<String>> { None }
-            fn marc_path_kind(_: &str) -> Option<PathKind> { None }
-            fn marc_has_path(_: &str) -> bool { false }
-            fn marc_is_vec_leaf(_: &str) -> bool { false }
-            fn marc_creator_field() -> &'static str { "" }
+            fn from_marc_str(s: &str) -> Self {
+                <$ty as FromRuleValue>::from_rule_value(s)
+            }
+            fn to_marc_str(&self) -> String {
+                <$ty as FromRuleValue>::to_rule_value(self)
+            }
+            fn marc_set(&mut self, _: &str, _: &str) -> bool {
+                false
+            }
+            fn marc_get_option(&self, _: &str) -> Option<String> {
+                None
+            }
+            fn marc_get_vec(&self, _: &str) -> Option<Vec<String>> {
+                None
+            }
+            fn marc_path_kind(_: &str) -> Option<PathKind> {
+                None
+            }
+            fn marc_has_path(_: &str) -> bool {
+                false
+            }
+            fn marc_is_vec_leaf(_: &str) -> bool {
+                false
+            }
+            fn marc_creator_field() -> &'static str {
+                ""
+            }
         }
     };
 }
@@ -161,10 +177,7 @@ pub struct Record {
 
 impl Record {
     pub fn authors(&self) -> impl Iterator<Item = &Agent> {
-        self.responsibility
-            .main_entry
-            .iter()
-            .chain(self.responsibility.added_entries.iter())
+        self.responsibility.main_entry.iter().chain(self.responsibility.added_entries.iter())
     }
 
     pub fn languages(&self) -> &[Language] {
@@ -193,8 +206,6 @@ impl Record {
     pub fn specimens(&self) -> &[Specimen] {
         &self.local.specimens
     }
-
-  
 }
 
 /// 0XX - Identification block

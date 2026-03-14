@@ -6,7 +6,7 @@ use crate::format::MarcFormat;
 use crate::raw::{BinaryReader, RawRecordView};
 use crate::record::Record;
 use crate::xml::XmlReader;
-use crate::{FileFormat, detect_file_format};
+use crate::{detect_file_format, FileFormat};
 
 /// Unified MARC reader with auto-detection of file format (binary ISO2709 or MARC-XML).
 ///
@@ -104,12 +104,11 @@ impl MarcReader {
             let view = view?;
             let raw = view.as_raw();
             let format = MarcFormat::detect(raw, self.encoding_override)?;
-            
+
             records.push(format.to_record(raw)?);
         }
         Ok(records)
     }
-
 }
 
 impl<'a> IntoIterator for &'a MarcReader {

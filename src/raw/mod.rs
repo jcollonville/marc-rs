@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 
 use crate::encoding::Encoding;
-use crate::{MarcFormat, error::MarcError};
+use crate::{error::MarcError, MarcFormat};
 
 /// Zero-copy view over an ISO2709 MARC record.
 ///
@@ -22,7 +22,6 @@ impl<'a> RawRecord<'a> {
         }
         Ok(&self.0[0..24])
     }
-
 }
 
 impl<'a> Display for RawRecord<'a> {
@@ -87,20 +86,11 @@ impl<'a> Display for RawRecordView<'a> {
     }
 }
 
-fn raw_record_display(
-    raw: &RawRecord<'_>,
-    encoding_override: Option<Encoding>,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
+fn raw_record_display(raw: &RawRecord<'_>, encoding_override: Option<Encoding>, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     for field in raw.fields().unwrap_or_default() {
         match field {
             RawField::Control { tag, data } => {
-                write!(
-                    f,
-                    "{}: {}\n",
-                    String::from_utf8_lossy(&tag),
-                    String::from_utf8_lossy(data).trim()
-                )?;
+                write!(f, "{}: {}\n", String::from_utf8_lossy(&tag), String::from_utf8_lossy(data).trim())?;
             }
             RawField::Data { tag, body, .. } => {
                 let format = match MarcFormat::detect(raw, encoding_override) {
@@ -122,13 +112,7 @@ fn raw_record_display(
                         }
                         let slice = &body[start..end];
                         let value = format.encoding().decode(slice).unwrap_or_else(|_| "".into());
-                        write!(
-                            f,
-                            "{} ${}: {}\n",
-                            String::from_utf8_lossy(&tag),
-                            code as char,
-                            String::from_utf8_lossy(value.as_bytes())
-                        )?;
+                        write!(f, "{} ${}: {}\n", String::from_utf8_lossy(&tag), code as char, String::from_utf8_lossy(value.as_bytes()))?;
                         pos = end;
                     } else if body[pos] == 0x1E {
                         break;
@@ -212,15 +196,8 @@ impl<'a> Iterator for DirectoryIter<'a> {
 /// Raw field view.
 #[derive(Debug)]
 pub enum RawField<'a> {
-    Control {
-        tag: [u8; 3],
-        data: &'a [u8],
-    },
-    Data {
-        tag: [u8; 3],
-        indicators: [u8; 2],
-        body: &'a [u8],
-    },
+    Control { tag: [u8; 3], data: &'a [u8] },
+    Data { tag: [u8; 3], indicators: [u8; 2], body: &'a [u8] },
 }
 
 impl<'a> RawRecord<'a> {
@@ -243,11 +220,7 @@ impl<'a> RawRecord<'a> {
                     continue;
                 }
                 let indicators = [slice[0], slice[1]];
-                out.push(RawField::Data {
-                    tag,
-                    indicators,
-                    body: &slice[2..],
-                });
+                out.push(RawField::Data { tag, indicators, body: &slice[2..] });
             }
         }
         Ok(out)
@@ -259,4 +232,3 @@ pub use reader::BinaryReader;
 
 mod writer;
 pub use writer::BinaryWriter;
-

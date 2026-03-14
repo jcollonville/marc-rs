@@ -14,4 +14,3 @@ pub enum MarcError {
     #[error("XML error: {0}")]
     Xml(String),
 }
-

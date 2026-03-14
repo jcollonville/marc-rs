@@ -96,7 +96,9 @@ pub enum Language {
 }
 
 impl Default for Language {
-    fn default() -> Self { Language::Other(String::new()) }
+    fn default() -> Self {
+        Language::Other(String::new())
+    }
 }
 
 impl From<&str> for Language {
@@ -212,7 +214,9 @@ pub enum Country {
 }
 
 impl Default for Country {
-    fn default() -> Self { Country::Other(String::new()) }
+    fn default() -> Self {
+        Country::Other(String::new())
+    }
 }
 
 impl From<&str> for Country {
@@ -384,7 +388,9 @@ pub enum NoteType {
 }
 
 impl Default for NoteType {
-    fn default() -> Self { NoteType::Other(String::new()) }
+    fn default() -> Self {
+        NoteType::Other(String::new())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -483,7 +489,9 @@ pub enum LinkType {
 }
 
 impl Default for LinkType {
-    fn default() -> Self { LinkType::Other(String::new()) }
+    fn default() -> Self {
+        LinkType::Other(String::new())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
@@ -508,7 +516,9 @@ pub enum SubjectType {
 }
 
 impl Default for SubjectType {
-    fn default() -> Self { SubjectType::Other(String::new()) }
+    fn default() -> Self {
+        SubjectType::Other(String::new())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
@@ -528,7 +538,9 @@ pub enum ClassificationScheme {
 }
 
 impl Default for ClassificationScheme {
-    fn default() -> Self { ClassificationScheme::Other(String::new()) }
+    fn default() -> Self {
+        ClassificationScheme::Other(String::new())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
@@ -717,4 +729,3 @@ pub struct VaryingTitle {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remainder: Option<String>,
 }
-

@@ -10,8 +10,7 @@ const MARC21_JSON: &str = include_str!("../../resources/marc21.json");
 
 lazy_static! {
     static ref COMPILED: CompiledConfig = {
-        let (_, compiled) = load_config(MARC21_JSON)
-            .expect("invalid marc21.json config");
+        let (_, compiled) = load_config(MARC21_JSON).expect("invalid marc21.json config");
         compiled
     };
 }

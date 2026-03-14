@@ -61,9 +61,7 @@ fn main() -> Result<(), MarcError> {
         "json" => dump_as_json(reader),
         "fields" => dump_fields(&reader),
         "xml" => dump_as_xml(&reader),
-        other if other.starts_with("marc21-") || other.starts_with("unimarc-") => {
-            dump_as_iso2709(reader, other)
-        }
+        other if other.starts_with("marc21-") || other.starts_with("unimarc-") => dump_as_iso2709(reader, other),
         _ => dump_fields(&reader),
     }
 }
@@ -77,8 +75,7 @@ fn dump_as_json(reader: MarcReader) -> Result<(), MarcError> {
             print!(",\n");
         }
         first = false;
-        let json = serde_json::to_string_pretty(record)
-            .map_err(|_| MarcError::InvalidRecord("serde error"))?;
+        let json = serde_json::to_string_pretty(record).map_err(|_| MarcError::InvalidRecord("serde error"))?;
         print!("{json}");
     }
     println!("]");

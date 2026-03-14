@@ -25,7 +25,9 @@ pub struct LeaderPositionDef {
     pub default_raw: Option<String>,
 }
 
-fn default_one() -> usize { 1 }
+fn default_one() -> usize {
+    1
+}
 
 #[derive(Debug, Deserialize)]
 pub struct EncodingIndicatorDef {

@@ -54,14 +54,11 @@ struct ResolvedPath {
 
 fn resolve_path(path: &str) -> Result<ResolvedPath, ConfigError> {
     // Agent paths are handled manually (enum-based dispatch)
-    if path.starts_with("responsibility.main_entry.")
-        || path.starts_with("responsibility.added_entries.")
-    {
+    if path.starts_with("responsibility.main_entry.") || path.starts_with("responsibility.added_entries.") {
         return resolve_agent_path(path);
     }
 
-    let kind = Record::marc_path_kind(path)
-        .ok_or_else(|| ConfigError::UnknownPath(path.to_string()))?;
+    let kind = Record::marc_path_kind(path).ok_or_else(|| ConfigError::UnknownPath(path.to_string()))?;
 
     let ps = path.to_string();
     let pv = path.to_string();
@@ -72,18 +69,12 @@ fn resolve_path(path: &str) -> Result<ResolvedPath, ConfigError> {
     });
 
     let vec_getter: Option<VecGetter> = match kind {
-        PathKind::VecPush | PathKind::VecStructCreator | PathKind::VecStructField => {
-            Some(Box::new(move |rec| {
-                rec.marc_get_vec(&pv).unwrap_or_default()
-            }))
-        }
+        PathKind::VecPush | PathKind::VecStructCreator | PathKind::VecStructField => Some(Box::new(move |rec| rec.marc_get_vec(&pv).unwrap_or_default())),
         _ => None,
     };
 
     let option_getter: Option<OptionGetter> = match kind {
-        PathKind::OptionSet | PathKind::OptionInit => {
-            Some(Box::new(move |rec| rec.marc_get_option(&po)))
-        }
+        PathKind::OptionSet | PathKind::OptionInit => Some(Box::new(move |rec| rec.marc_get_option(&po))),
         _ => None,
     };
 
@@ -102,115 +93,95 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => Some(p.name.clone()),
-                    Some(Agent::CorporateBody(c)) => Some(c.name.clone()),
-                    Some(Agent::Meeting(m)) => Some(m.name.clone()),
-                    None => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => Some(p.name.clone()),
+                Some(Agent::CorporateBody(c)) => Some(c.name.clone()),
+                Some(Agent::Meeting(m)) => Some(m.name.clone()),
+                None => None,
             })),
         }),
         "responsibility.main_entry.forename" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.forename.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.forename.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.dates" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.dates.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.dates.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.numeration" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.numeration.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.numeration.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.titles_associated" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.titles_associated.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.titles_associated.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.fuller_form" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.fuller_form.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.fuller_form.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.relator" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::Person(p)) => p.relator.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::Person(p)) => p.relator.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.subordinate_unit" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::CorporateBody(c)) => c.subordinate_unit.clone(),
-                    Some(Agent::Meeting(m)) => m.subordinate_unit.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::CorporateBody(c)) => c.subordinate_unit.clone(),
+                Some(Agent::Meeting(m)) => m.subordinate_unit.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.location" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::CorporateBody(c)) => c.location.clone(),
-                    Some(Agent::Meeting(m)) => m.location.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::CorporateBody(c)) => c.location.clone(),
+                Some(Agent::Meeting(m)) => m.location.clone(),
+                _ => None,
             })),
         }),
         "responsibility.main_entry.date" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
-            option_getter: Some(Box::new(|rec| {
-                match &rec.responsibility.main_entry {
-                    Some(Agent::CorporateBody(c)) => c.date.clone(),
-                    Some(Agent::Meeting(m)) => m.date.clone(),
-                    _ => None,
-                }
+            option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
+                Some(Agent::CorporateBody(c)) => c.date.clone(),
+                Some(Agent::Meeting(m)) => m.date.clone(),
+                _ => None,
             })),
         }),
         // -- added_entries getters --
@@ -218,11 +189,15 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructCreator,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().map(|a| match a {
-                    Agent::Person(p) => p.name.clone(),
-                    Agent::CorporateBody(c) => c.name.clone(),
-                    Agent::Meeting(m) => m.name.clone(),
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .map(|a| match a {
+                        Agent::Person(p) => p.name.clone(),
+                        Agent::CorporateBody(c) => c.name.clone(),
+                        Agent::Meeting(m) => m.name.clone(),
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -230,10 +205,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.forename.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.forename.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -241,10 +220,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.dates.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.dates.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -252,10 +235,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.numeration.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.numeration.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -263,10 +250,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.titles_associated.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.titles_associated.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -274,10 +265,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.fuller_form.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.fuller_form.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -285,10 +280,14 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::Person(p) => p.relator.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::Person(p) => p.relator.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -296,11 +295,15 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::CorporateBody(c) => c.subordinate_unit.clone(),
-                    Agent::Meeting(m) => m.subordinate_unit.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::CorporateBody(c) => c.subordinate_unit.clone(),
+                        Agent::Meeting(m) => m.subordinate_unit.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -308,11 +311,15 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::CorporateBody(c) => c.location.clone(),
-                    Agent::Meeting(m) => m.location.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::CorporateBody(c) => c.location.clone(),
+                        Agent::Meeting(m) => m.location.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -320,11 +327,15 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             kind: PathKind::VecStructField,
             setter: Box::new(|_rec, _v| {}),
             vec_getter: Some(Box::new(|rec| {
-                rec.responsibility.added_entries.iter().filter_map(|a| match a {
-                    Agent::CorporateBody(c) => c.date.clone(),
-                    Agent::Meeting(m) => m.date.clone(),
-                    _ => None,
-                }).collect()
+                rec.responsibility
+                    .added_entries
+                    .iter()
+                    .filter_map(|a| match a {
+                        Agent::CorporateBody(c) => c.date.clone(),
+                        Agent::Meeting(m) => m.date.clone(),
+                        _ => None,
+                    })
+                    .collect()
             })),
             option_getter: None,
         }),
@@ -396,29 +407,19 @@ pub struct CompiledConfig {
 // Rules resolution helpers
 // ---------------------------------------------------------------------------
 
-fn resolve_rules(
-    rules_ref: &Option<RulesRef>,
-    shared: &HashMap<String, SharedRulesTable>,
-    binding_default: &Option<String>,
-) -> Result<(Option<Vec<TranslationRule>>, Option<String>), ConfigError> {
+fn resolve_rules(rules_ref: &Option<RulesRef>, shared: &HashMap<String, SharedRulesTable>, binding_default: &Option<String>) -> Result<(Option<Vec<TranslationRule>>, Option<String>), ConfigError> {
     match rules_ref {
         None => Ok((None, None)),
         Some(RulesRef::Inline(entries)) => Ok((Some(entries.clone()), binding_default.clone())),
         Some(RulesRef::Ref(name)) => {
-            let table = shared
-                .get(name)
-                .ok_or_else(|| ConfigError::UnknownRulesRef(name.clone()))?;
+            let table = shared.get(name).ok_or_else(|| ConfigError::UnknownRulesRef(name.clone()))?;
             let default = binding_default.clone().or_else(|| table.default.clone());
             Ok((Some(table.entries.clone()), default))
         }
     }
 }
 
-fn forward_translate(
-    raw: &str,
-    entries: &Option<Vec<TranslationRule>>,
-    default: &Option<String>,
-) -> String {
+fn forward_translate(raw: &str, entries: &Option<Vec<TranslationRule>>, default: &Option<String>) -> String {
     match entries {
         None => raw.to_string(),
         Some(entries) => {
@@ -432,10 +433,7 @@ fn forward_translate(
     }
 }
 
-fn reverse_translate(
-    value: &str,
-    entries: &Option<Vec<TranslationRule>>,
-) -> String {
+fn reverse_translate(value: &str, entries: &Option<Vec<TranslationRule>>) -> String {
     match entries {
         None => value.to_string(),
         Some(entries) => {
@@ -485,8 +483,7 @@ impl CatalogConfig {
                 let control_target = if is_control {
                     if let Some(target) = &field_def.target {
                         let resolved = resolve_path(target)?;
-                        let (rules_entries, rules_default) =
-                            resolve_rules(&field_def.rules, &self.rules, &None)?;
+                        let (rules_entries, rules_default) = resolve_rules(&field_def.rules, &self.rules, &None)?;
                         Some(CompiledControlTarget {
                             resolved,
                             slice: field_def.slice.clone(),
@@ -505,8 +502,7 @@ impl CatalogConfig {
                 if let Some(subs) = &field_def.subfields {
                     for sub in subs {
                         let resolved = resolve_path(&sub.target)?;
-                        let (rules_entries, rules_default) =
-                            resolve_rules(&sub.rules, &self.rules, &sub.default)?;
+                        let (rules_entries, rules_default) = resolve_rules(&sub.rules, &self.rules, &sub.default)?;
                         let trim_chars = sub.trim.as_ref().map(|t| t.chars().collect());
                         let code = sub.code.as_bytes().first().copied().unwrap_or(b' ');
                         bindings.push(CompiledBinding {
@@ -537,8 +533,7 @@ impl CatalogConfig {
         }
         let mut leader_positions = Vec::new();
         for lp in &self.leader {
-            let (rules_entries, rules_default) =
-                resolve_rules(&lp.rules, &self.rules, &None)?;
+            let (rules_entries, rules_default) = resolve_rules(&lp.rules, &self.rules, &None)?;
             leader_positions.push(CompiledLeaderPosition {
                 position: lp.position,
                 length: lp.length,
@@ -559,18 +554,21 @@ impl CatalogConfig {
             }
         }
 
-        let encoding_indicator = self.encoding_indicator.as_ref().map(|ei| {
-            CompiledEncodingIndicator {
-                leader_position: ei.leader_position,
-                tag: ei.tag.as_ref().map(|t| parse_tag(t)),
-                subfield: ei.subfield.as_ref().and_then(|s| s.as_bytes().first().copied()),
-                slice: ei.slice.clone(),
-                rules: ei.rules.clone(),
-                default_raw: ei.default_raw.clone(),
-            }
+        let encoding_indicator = self.encoding_indicator.as_ref().map(|ei| CompiledEncodingIndicator {
+            leader_position: ei.leader_position,
+            tag: ei.tag.as_ref().map(|t| parse_tag(t)),
+            subfield: ei.subfield.as_ref().and_then(|s| s.as_bytes().first().copied()),
+            slice: ei.slice.clone(),
+            rules: ei.rules.clone(),
+            default_raw: ei.default_raw.clone(),
         });
 
-        Ok(CompiledConfig { leader_positions, directory_map, encoding_indicator, fields })
+        Ok(CompiledConfig {
+            leader_positions,
+            directory_map,
+            encoding_indicator,
+            fields,
+        })
     }
 
     pub fn validate(&self) -> Result<(), ConfigError> {
@@ -621,7 +619,9 @@ fn set_leader_field(leader: &mut Leader, target: &str, value: &str) {
         "bibliographic_level" => leader.bibliographic_level = BibliographicLevel::from_rule_value(value),
         "encoding_level" => leader.encoding_level = Some(value.to_string()),
         "descriptive_cataloging_form" => leader.descriptive_cataloging_form = Some(value.to_string()),
-        other => { leader.extra.insert(other.to_string(), value.to_string()); }
+        other => {
+            leader.extra.insert(other.to_string(), value.to_string());
+        }
     }
 }
 
@@ -641,11 +641,7 @@ fn get_leader_field(leader: &Leader, target: &str) -> Option<String> {
 // ---------------------------------------------------------------------------
 
 impl CompiledConfig {
-    pub fn to_record(
-        &self,
-        encoding: &Encoding,
-        raw: &RawRecord<'_>,
-    ) -> Result<Record, MarcError> {
+    pub fn to_record(&self, encoding: &Encoding, raw: &RawRecord<'_>) -> Result<Record, MarcError> {
         let mut rec = Record {
             leader: Leader::default(),
             encoding: Some(encoding.clone()),
@@ -667,9 +663,7 @@ impl CompiledConfig {
                 if lp.position >= end {
                     continue;
                 }
-                let raw_str = std::str::from_utf8(&leader_bytes[lp.position..end])
-                    .unwrap_or("")
-                    .trim();
+                let raw_str = std::str::from_utf8(&leader_bytes[lp.position..end]).unwrap_or("").trim();
                 if raw_str.is_empty() {
                     continue;
                 }
@@ -698,8 +692,7 @@ impl CompiledConfig {
                             if trimmed.is_empty() {
                                 continue;
                             }
-                            let translated =
-                                forward_translate(trimmed, &ct.rules_entries, &ct.rules_default);
+                            let translated = forward_translate(trimmed, &ct.rules_entries, &ct.rules_default);
                             (ct.resolved.setter)(&mut rec, &translated);
                         }
                     }
@@ -716,19 +709,10 @@ impl CompiledConfig {
                                 if trimmed.is_empty() {
                                     continue;
                                 }
-                                let translated = forward_translate(
-                                    trimmed,
-                                    &binding.rules_entries,
-                                    &binding.rules_default,
-                                );
+                                let translated = forward_translate(trimmed, &binding.rules_entries, &binding.rules_default);
 
                                 if is_agent_path(&binding.target_path) {
-                                    apply_agent_forward(
-                                        &mut rec,
-                                        &binding.target_path,
-                                        &translated,
-                                        compiled.field_type.as_deref(),
-                                    );
+                                    apply_agent_forward(&mut rec, &binding.target_path, &translated, compiled.field_type.as_deref());
                                 } else {
                                     (binding.resolved.setter)(&mut rec, &translated);
                                 }
@@ -746,11 +730,7 @@ impl CompiledConfig {
     // Reverse mapping: Record -> raw
     // -----------------------------------------------------------------------
 
-    pub fn to_raw(
-        &self,
-        encoding: &Encoding,
-        record: &Record,
-    ) -> Result<OwnedRawRecord, MarcError> {
+    pub fn to_raw(&self, encoding: &Encoding, record: &Record) -> Result<OwnedRawRecord, MarcError> {
         let mut fields: Vec<([u8; 3], ReverseFieldData)> = Vec::new();
 
         for compiled in &self.fields {
@@ -791,18 +771,10 @@ impl CompiledConfig {
 
             // Determine if this is a Vec-of-struct field by checking the first binding
             let first_binding = &compiled.bindings[0];
-            let is_vec = matches!(
-                first_binding.resolved.kind,
-                PathKind::VecStructCreator | PathKind::VecPush
-            );
+            let is_vec = matches!(first_binding.resolved.kind, PathKind::VecStructCreator | PathKind::VecPush);
 
             if is_vec {
-                let count = first_binding
-                    .resolved
-                    .vec_getter
-                    .as_ref()
-                    .map(|g| g(record).len())
-                    .unwrap_or(0);
+                let count = first_binding.resolved.vec_getter.as_ref().map(|g| g(record).len()).unwrap_or(0);
 
                 for idx in 0..count {
                     if !matches_defaults_at_index(record, compiled, idx) {
@@ -810,15 +782,10 @@ impl CompiledConfig {
                     }
                     let mut subfields: Vec<(u8, String)> = Vec::new();
                     for binding in &compiled.bindings {
-                        let values: Vec<String> = if let Some(g) = &binding.resolved.vec_getter {
-                            g(record)
-                        } else {
-                            Vec::new()
-                        };
+                        let values: Vec<String> = if let Some(g) = &binding.resolved.vec_getter { g(record) } else { Vec::new() };
                         if let Some(val) = values.get(idx) {
                             if !val.trim().is_empty() {
-                                let raw_val =
-                                    reverse_translate(val, &binding.rules_entries);
+                                let raw_val = reverse_translate(val, &binding.rules_entries);
                                 subfields.push((binding.code, raw_val));
                             }
                         }
@@ -860,16 +827,11 @@ impl CompiledConfig {
                         if !v.trim().is_empty() {
                             let raw_val = reverse_translate(&v, &binding.rules_entries);
                             if let Some(ref slice) = binding.slice {
-                                let field_len = compiled
-                                    .length
-                                    .unwrap_or(slice.offset + slice.length);
-                                let buf = slice_buffers
-                                    .entry(binding.code)
-                                    .or_insert_with(|| vec![b' '; field_len]);
+                                let field_len = compiled.length.unwrap_or(slice.offset + slice.length);
+                                let buf = slice_buffers.entry(binding.code).or_insert_with(|| vec![b' '; field_len]);
                                 let bytes = raw_val.as_bytes();
                                 let len = bytes.len().min(slice.length);
-                                buf[slice.offset..slice.offset + len]
-                                    .copy_from_slice(&bytes[..len]);
+                                buf[slice.offset..slice.offset + len].copy_from_slice(&bytes[..len]);
                             } else {
                                 subfields.push((binding.code, raw_val));
                             }
@@ -877,10 +839,7 @@ impl CompiledConfig {
                     }
                 }
                 for (code, buf) in slice_buffers {
-                    subfields.push((
-                        code,
-                        String::from_utf8_lossy(&buf).into_owned(),
-                    ));
+                    subfields.push((code, String::from_utf8_lossy(&buf).into_owned()));
                 }
                 if !subfields.is_empty() {
                     fields.push((
@@ -917,18 +876,16 @@ impl CompiledConfig {
         Ok(raw)
     }
 
-    fn apply_encoding_indicator(
-        &self,
-        raw: &mut OwnedRawRecord,
-        encoding: &Encoding,
-    ) -> Result<(), MarcError> {
+    fn apply_encoding_indicator(&self, raw: &mut OwnedRawRecord, encoding: &Encoding) -> Result<(), MarcError> {
         let ei = match &self.encoding_indicator {
             Some(ei) => ei,
             None => return Ok(()),
         };
 
         let encoding_name = encoding_to_name(encoding);
-        let raw_value = ei.rules.iter()
+        let raw_value = ei
+            .rules
+            .iter()
             .find(|r| r.encoding == encoding_name)
             .map(|r| r.raw.clone())
             .or_else(|| ei.default_raw.clone())
@@ -941,9 +898,7 @@ impl CompiledConfig {
             data[pos..pos + len].copy_from_slice(&bytes[..len]);
         } else if let Some(tag) = &ei.tag {
             let subfield_code = ei.subfield.unwrap_or(b'a');
-            patch_field_subfield_slice(
-                raw, tag, subfield_code, &ei.slice, raw_value.as_bytes(),
-            )?;
+            patch_field_subfield_slice(raw, tag, subfield_code, &ei.slice, raw_value.as_bytes())?;
         }
 
         Ok(())
@@ -956,21 +911,20 @@ fn encoding_to_name(encoding: &Encoding) -> &'static str {
         Encoding::Marc8 => "marc8",
         Encoding::Iso5426 => "iso5426",
         Encoding::Other(enc) => {
-            if *enc == encoding_rs::ISO_8859_2 { "iso8859_2" }
-            else if *enc == encoding_rs::ISO_8859_3 { "iso8859_3" }
-            else if *enc == encoding_rs::ISO_8859_5 { "iso8859_5" }
-            else { "unknown" }
+            if *enc == encoding_rs::ISO_8859_2 {
+                "iso8859_2"
+            } else if *enc == encoding_rs::ISO_8859_3 {
+                "iso8859_3"
+            } else if *enc == encoding_rs::ISO_8859_5 {
+                "iso8859_5"
+            } else {
+                "unknown"
+            }
         }
     }
 }
 
-fn patch_field_subfield_slice(
-    raw: &mut OwnedRawRecord,
-    tag: &[u8; 3],
-    subfield_code: u8,
-    slice: &Option<SliceDef>,
-    patch_bytes: &[u8],
-) -> Result<(), MarcError> {
+fn patch_field_subfield_slice(raw: &mut OwnedRawRecord, tag: &[u8; 3], subfield_code: u8, slice: &Option<SliceDef>, patch_bytes: &[u8]) -> Result<(), MarcError> {
     let data = raw.data_mut();
     if data.len() < 24 {
         return Err(MarcError::InvalidRecord("record shorter than leader"));
@@ -984,14 +938,8 @@ fn patch_field_subfield_slice(
     while dir_pos + 12 <= data.len() && data[dir_pos] != 0x1E {
         let entry_tag = &data[dir_pos..dir_pos + 3];
         if entry_tag == tag {
-            let field_len = std::str::from_utf8(&data[dir_pos + 3..dir_pos + 7])
-                .ok()
-                .and_then(|s| s.trim().parse::<usize>().ok())
-                .unwrap_or(0);
-            let field_offset = std::str::from_utf8(&data[dir_pos + 7..dir_pos + 12])
-                .ok()
-                .and_then(|s| s.trim().parse::<usize>().ok())
-                .unwrap_or(0);
+            let field_len = std::str::from_utf8(&data[dir_pos + 3..dir_pos + 7]).ok().and_then(|s| s.trim().parse::<usize>().ok()).unwrap_or(0);
+            let field_offset = std::str::from_utf8(&data[dir_pos + 7..dir_pos + 12]).ok().and_then(|s| s.trim().parse::<usize>().ok()).unwrap_or(0);
             let abs_start = base_addr + field_offset;
             let abs_end = (abs_start + field_len).min(data.len());
 
@@ -999,7 +947,9 @@ fn patch_field_subfield_slice(
             let mut pos = body_start;
             while pos < abs_end {
                 if data[pos] == 0x1F {
-                    if pos + 1 >= abs_end { break; }
+                    if pos + 1 >= abs_end {
+                        break;
+                    }
                     let code = data[pos + 1];
                     let sf_start = pos + 2;
                     let mut sf_end = sf_start;
@@ -1012,14 +962,12 @@ fn patch_field_subfield_slice(
                                 let target = sf_start + s.offset;
                                 let len = patch_bytes.len().min(s.length);
                                 if target + len <= abs_end {
-                                    data[target..target + len]
-                                        .copy_from_slice(&patch_bytes[..len]);
+                                    data[target..target + len].copy_from_slice(&patch_bytes[..len]);
                                 }
                             }
                             None => {
                                 let len = patch_bytes.len().min(sf_end - sf_start);
-                                data[sf_start..sf_start + len]
-                                    .copy_from_slice(&patch_bytes[..len]);
+                                data[sf_start..sf_start + len].copy_from_slice(&patch_bytes[..len]);
                             }
                         }
                         return Ok(());
@@ -1113,9 +1061,7 @@ fn merge_control_fields(fields: &mut Vec<([u8; 3], ReverseFieldData)>) {
         match data {
             ReverseFieldData::Control(val) => {
                 let bytes = val.as_bytes();
-                let buf = merged
-                    .entry(tag)
-                    .or_insert_with(|| vec![b' '; bytes.len()]);
+                let buf = merged.entry(tag).or_insert_with(|| vec![b' '; bytes.len()]);
                 if buf.len() < bytes.len() {
                     buf.resize(bytes.len(), b' ');
                 }
@@ -1131,10 +1077,7 @@ fn merge_control_fields(fields: &mut Vec<([u8; 3], ReverseFieldData)>) {
 
     *fields = other;
     for (tag, buf) in merged {
-        fields.push((
-            tag,
-            ReverseFieldData::Control(String::from_utf8_lossy(&buf).into_owned()),
-        ));
+        fields.push((tag, ReverseFieldData::Control(String::from_utf8_lossy(&buf).into_owned())));
     }
 }
 
@@ -1154,18 +1097,29 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         (true, "name") => match agent_type {
             Some("person") => {
                 rec.responsibility.main_entry = Some(Agent::Person(Person {
-                    name: value.to_string(), forename: None, dates: None,
-                    numeration: None, titles_associated: None, fuller_form: None, relator: None,
+                    name: value.to_string(),
+                    forename: None,
+                    dates: None,
+                    numeration: None,
+                    titles_associated: None,
+                    fuller_form: None,
+                    relator: None,
                 }));
             }
             Some("corporate_body") => {
                 rec.responsibility.main_entry = Some(Agent::CorporateBody(CorporateBody {
-                    name: value.to_string(), subordinate_unit: None, location: None, date: None,
+                    name: value.to_string(),
+                    subordinate_unit: None,
+                    location: None,
+                    date: None,
                 }));
             }
             Some("meeting") => {
                 rec.responsibility.main_entry = Some(Agent::Meeting(Meeting {
-                    name: value.to_string(), location: None, date: None, subordinate_unit: None,
+                    name: value.to_string(),
+                    location: None,
+                    date: None,
+                    subordinate_unit: None,
                 }));
             }
             _ => {}
@@ -1218,18 +1172,29 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         (false, "name") => match agent_type {
             Some("person") => {
                 rec.responsibility.added_entries.push(Agent::Person(Person {
-                    name: value.to_string(), forename: None, dates: None,
-                    numeration: None, titles_associated: None, fuller_form: None, relator: None,
+                    name: value.to_string(),
+                    forename: None,
+                    dates: None,
+                    numeration: None,
+                    titles_associated: None,
+                    fuller_form: None,
+                    relator: None,
                 }));
             }
             Some("corporate_body") => {
                 rec.responsibility.added_entries.push(Agent::CorporateBody(CorporateBody {
-                    name: value.to_string(), subordinate_unit: None, location: None, date: None,
+                    name: value.to_string(),
+                    subordinate_unit: None,
+                    location: None,
+                    date: None,
                 }));
             }
             Some("meeting") => {
                 rec.responsibility.added_entries.push(Agent::Meeting(Meeting {
-                    name: value.to_string(), location: None, date: None, subordinate_unit: None,
+                    name: value.to_string(),
+                    location: None,
+                    date: None,
+                    subordinate_unit: None,
                 }));
             }
             _ => {}
@@ -1374,17 +1339,10 @@ fn reverse_agent(record: &Record, compiled: &CompiledField) -> Vec<([u8; 3], Rev
     result
 }
 
-fn agent_to_subfields(
-    agent: &Agent,
-    expected_type: Option<&str>,
-    compiled: &CompiledField,
-) -> Option<ReverseFieldData> {
+fn agent_to_subfields(agent: &Agent, expected_type: Option<&str>, compiled: &CompiledField) -> Option<ReverseFieldData> {
     if !matches!(
         (expected_type, agent),
-        (Some("person"), Agent::Person(_))
-            | (Some("corporate_body"), Agent::CorporateBody(_))
-            | (Some("meeting"), Agent::Meeting(_))
-            | (None, _)
+        (Some("person"), Agent::Person(_)) | (Some("corporate_body"), Agent::CorporateBody(_)) | (Some("meeting"), Agent::Meeting(_)) | (None, _)
     ) {
         return None;
     }
@@ -1584,11 +1542,7 @@ mod tests {
             "responsibility.added_entries.date",
         ];
         for p in &paths {
-            assert!(
-                resolve_path(p).is_ok(),
-                "path '{}' should resolve",
-                p
-            );
+            assert!(resolve_path(p).is_ok(), "path '{}' should resolve", p);
         }
     }
 
@@ -1619,11 +1573,7 @@ mod tests {
         ];
         for (path, expected) in &cases {
             let resolved = resolve_path(path).unwrap();
-            assert_eq!(
-                resolved.kind, *expected,
-                "kind mismatch for '{}'",
-                path
-            );
+            assert_eq!(resolved.kind, *expected, "kind mismatch for '{}'", path);
         }
     }
 
@@ -1631,10 +1581,7 @@ mod tests {
     fn marc_set_and_get_option_string() {
         let mut rec = Record::default();
         rec.marc_set("identification.record_id", "REC001");
-        assert_eq!(
-            rec.marc_get_option("identification.record_id"),
-            Some("REC001".to_string())
-        );
+        assert_eq!(rec.marc_get_option("identification.record_id"), Some("REC001".to_string()));
     }
 
     #[test]
@@ -1642,10 +1589,7 @@ mod tests {
         let mut rec = Record::default();
         rec.marc_set("identification.national_bibliography_numbers", "NBN1");
         rec.marc_set("identification.national_bibliography_numbers", "NBN2");
-        assert_eq!(
-            rec.marc_get_vec("identification.national_bibliography_numbers"),
-            Some(vec!["NBN1".to_string(), "NBN2".to_string()])
-        );
+        assert_eq!(rec.marc_get_vec("identification.national_bibliography_numbers"), Some(vec!["NBN1".to_string(), "NBN2".to_string()]));
     }
 
     #[test]
@@ -1657,10 +1601,7 @@ mod tests {
 
         assert_eq!(rec.identification.isbn.len(), 2);
         assert_eq!(rec.identification.isbn[0].value, "978-0-13-110362-7");
-        assert_eq!(
-            rec.identification.isbn[0].qualifying,
-            Some("hardcover".to_string())
-        );
+        assert_eq!(rec.identification.isbn[0].qualifying, Some("hardcover".to_string()));
         assert_eq!(rec.identification.isbn[1].value, "978-0-13-110363-4");
     }
 
@@ -1717,10 +1658,7 @@ mod tests {
     fn marc_get_option_through_option_struct() {
         let mut rec = Record::default();
         rec.marc_set("description.physical_description.extent", "300 p.");
-        assert_eq!(
-            rec.marc_get_option("description.physical_description.extent"),
-            Some("300 p.".to_string())
-        );
+        assert_eq!(rec.marc_get_option("description.physical_description.extent"), Some("300 p.".to_string()));
     }
 
     #[test]
@@ -1836,14 +1774,8 @@ mod tests {
         rec.marc_set("international.cataloging_sources.transcribing_agency", "DLC");
         rec.marc_set("international.cataloging_sources.describing_conventions", "rda");
         assert_eq!(rec.international.cataloging_sources.len(), 1);
-        assert_eq!(
-            rec.international.cataloging_sources[0].agency,
-            Some("DLC".to_string())
-        );
-        assert_eq!(
-            rec.international.cataloging_sources[0].cataloging_language,
-            Some("eng".to_string())
-        );
+        assert_eq!(rec.international.cataloging_sources[0].agency, Some("DLC".to_string()));
+        assert_eq!(rec.international.cataloging_sources[0].cataloging_language, Some("eng".to_string()));
     }
 
     #[test]
@@ -1855,10 +1787,7 @@ mod tests {
         rec.marc_set("description.publication.manufacture_place", "Factory City");
         rec.marc_set("description.publication.manufacturer", "Printer Inc.");
         assert_eq!(rec.description.publication.len(), 1);
-        assert_eq!(
-            rec.description.publication[0].manufacture_place,
-            Some("Factory City".to_string())
-        );
+        assert_eq!(rec.description.publication[0].manufacture_place, Some("Factory City".to_string()));
     }
 
     #[test]
@@ -1876,8 +1805,7 @@ mod tests {
 
     #[test]
     fn new_note_types_resolve_via_from_rule_value() {
-        let note_types = ["dissertation", "systemDetails", "languageNote", "awards",
-                          "reproduction", "frequency", "credits"];
+        let note_types = ["dissertation", "systemDetails", "languageNote", "awards", "reproduction", "frequency", "credits"];
         for nt in &note_types {
             let val = NoteType::from_rule_value(nt);
             assert_ne!(val.to_rule_value(), "", "note type '{}' should round-trip", nt);
@@ -1886,11 +1814,25 @@ mod tests {
 
     #[test]
     fn new_link_types_resolve_via_from_rule_value() {
-        let link_types = ["series", "supplement", "supplementParent", "issuedWith",
-                          "continues", "continuedBy", "supersedes", "supersededBy",
-                          "translation", "translationOf", "otherEdition",
-                          "otherEditionDiffLang", "preceding", "succeeding",
-                          "setLevel", "subsetLevel", "pieceLevel"];
+        let link_types = [
+            "series",
+            "supplement",
+            "supplementParent",
+            "issuedWith",
+            "continues",
+            "continuedBy",
+            "supersedes",
+            "supersededBy",
+            "translation",
+            "translationOf",
+            "otherEdition",
+            "otherEditionDiffLang",
+            "preceding",
+            "succeeding",
+            "setLevel",
+            "subsetLevel",
+            "pieceLevel",
+        ];
         for lt in &link_types {
             let val = LinkType::from_rule_value(lt);
             assert_eq!(val.to_rule_value(), *lt, "link type '{}' should round-trip", lt);
@@ -1899,8 +1841,7 @@ mod tests {
 
     #[test]
     fn new_subject_types_resolve_via_from_rule_value() {
-        let subject_types = ["personal", "corporate", "meeting", "uniformTitle",
-                             "topical", "geographic", "genre", "uncontrolled"];
+        let subject_types = ["personal", "corporate", "meeting", "uniformTitle", "topical", "geographic", "genre", "uncontrolled"];
         for st in &subject_types {
             let val = SubjectType::from_rule_value(st);
             assert_eq!(val.to_rule_value(), *st, "subject type '{}' should round-trip", st);
@@ -1932,4 +1873,3 @@ mod tests {
         }
     }
 }
-

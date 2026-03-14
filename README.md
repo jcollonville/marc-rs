@@ -11,7 +11,7 @@ A Rust library for parsing and writing MARC21, UNIMARC, and MARC XML bibliograph
 - Multiple character encodings (UTF-8, MARC-8, ISO-8859-*, ISO-5426)
 - Parse multiple records from a single buffer
 - Write single or multiple records
-- Optional Serde support for serialization/deserialization
+- Serde support for serialization/deserialization
 - Comprehensive field type enums organized by category
 
 ## Installation
@@ -20,10 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-marc-rs = "0.1.0"
-
-# Optional: Enable Serde support
-marc-rs = { version = "0.1.0", features = ["serde"] }
+marc-rs = "0.0.5"
 ```
 
 ## Usage
@@ -67,7 +64,7 @@ let subject_tag = Subject::SubjectTopicalTerm.tag(format); // "650" in MARC21, "
 
 ### Serde Support
 
-With the `serde` feature enabled, you can serialize/deserialize directly to/from MARC formats:
+The crate includes Serde support for serialization/deserialization to/from MARC formats:
 
 ```rust
 use marc_rs::{Record, FormatEncoding, MarcFormat, Encoding, serde_marc};
@@ -152,46 +149,37 @@ The library provides enums for different field categories:
 
 ## Command Line Tool
 
-The crate includes a command-line viewer tool to inspect MARC files:
+The crate includes a CLI to read and convert MARC files:
 
 ```bash
-# Build the viewer (requires serde feature)
-cargo build --bin marc-viewer --features serde
+# Build the binary
+cargo build --bin marc-rs
 
-# View a MARC file (auto-detect format, plain output)
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc
-
-# Specify format explicitly
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc marc21
-
-# Specify format and encoding
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc unimarc utf8
+# View a MARC file (auto-detect format, human-readable fields output)
+cargo run --bin marc-rs -- path/to/file.mrc
 
 # Output in JSON format
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc marc21 utf8 json
+cargo run --bin marc-rs -- path/to/file.mrc json
 
 # Output in XML format
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc marc21 utf8 xml
+cargo run --bin marc-rs -- path/to/file.mrc xml
 
-# Output in MARC21 binary format
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc marc21 utf8 marc > output.mrc
+# Output in MARC21 binary format (e.g. UTF-8)
+cargo run --bin marc-rs -- path/to/file.mrc marc21-utf8 > output.mrc
 
 # Output in UNIMARC binary format
-cargo run --bin marc-viewer --features serde -- path/to/file.mrc unimarc utf8 unimarc > output.mrc
+cargo run --bin marc-rs -- path/to/file.mrc unimarc-utf8 > output.mrc
+
+# Force input encoding (overrides encoding declared in the record)
+cargo run --bin marc-rs -- --encoding utf8 path/to/file.mrc fields
 ```
 
-The viewer supports five output formats:
-- **plain** (default): Human-readable text format with leader, control fields, and data fields
-- **json**: JSON serialization using serde_json
-- **xml**: MARC XML format using serde_marc
-- **marc** or **marc21**: MARC21 binary format using serde_marc (outputs to stdout)
-- **unimarc**: UNIMARC binary format using serde_marc (outputs to stdout)
-
-The plain format displays:
-- File information and detected format
-- Leader information
-- All control fields (001-009)
-- All data fields with indicators and subfields
+Supported output formats (`FORMAT`, default: `fields`):
+- **fields**: Human-readable text with leader, control fields, and data fields
+- **json**: JSON serialization (array of records) using serde_json
+- **xml**: MARC XML collection using the crate's XML writer
+- **marc21-&lt;enc&gt;**: MARC21 binary (e.g. `marc21-utf8`, `marc21-marc8`)
+- **unimarc-&lt;enc&gt;**: UNIMARC binary (e.g. `unimarc-utf8`, `unimarc-iso5426`)
 
 ## References
 

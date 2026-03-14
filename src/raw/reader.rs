@@ -22,11 +22,7 @@ impl<'a> BinaryReader<'a> {
     }
 
     pub fn with_encoding(data: &'a [u8], encoding_override: Option<Encoding>) -> Self {
-        Self {
-            data,
-            pos: 0,
-            encoding_override,
-        }
+        Self { data, pos: 0, encoding_override }
     }
 }
 
@@ -38,21 +34,12 @@ impl<'a> Iterator for BinaryReader<'a> {
             return None;
         }
         if self.data.len() - self.pos < 24 {
-            return Some(Err(MarcError::InvalidRecord(
-                "trailing bytes shorter than leader",
-            )));
+            return Some(Err(MarcError::InvalidRecord("trailing bytes shorter than leader")));
         }
         let leader = &self.data[self.pos..self.pos + 24];
-        let len = match std::str::from_utf8(&leader[0..5])
-            .ok()
-            .and_then(|s| s.trim().parse::<usize>().ok())
-        {
+        let len = match std::str::from_utf8(&leader[0..5]).ok().and_then(|s| s.trim().parse::<usize>().ok()) {
             Some(l) if l >= 24 && self.pos + l <= self.data.len() => l,
-            _ => {
-                return Some(Err(MarcError::InvalidRecord(
-                    "invalid record length in leader",
-                )))
-            }
+            _ => return Some(Err(MarcError::InvalidRecord("invalid record length in leader"))),
         };
         let start = self.pos;
         let end = self.pos + len;

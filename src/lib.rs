@@ -53,4 +53,3 @@ pub fn detect_file_format(data: &[u8]) -> FileFormat {
 pub fn parse_records(data: &[u8]) -> Result<Vec<Record>, MarcError> {
     MarcReader::from_bytes(data.to_vec())?.into_records()
 }
-

@@ -15,8 +15,7 @@ impl MarcFormat {
         let mut has_245 = false;
         for field in record.fields()? {
             match field {
-                crate::raw::RawField::Control { tag, .. }
-                | crate::raw::RawField::Data { tag, .. } => {
+                crate::raw::RawField::Control { tag, .. } | crate::raw::RawField::Data { tag, .. } => {
                     if &tag == b"200" {
                         has_200 = true;
                     } else if &tag == b"245" {
@@ -30,7 +29,7 @@ impl MarcFormat {
         } else {
             MarcFormat::Marc21(encoding_override.unwrap_or(marc21::detect_encoding(record)?))
         });
-       format
+        format
     }
 
     pub fn encoding(&self) -> &Encoding {
@@ -61,11 +60,7 @@ impl MarcFormat {
 
 pub enum ReverseFieldData {
     Control(String),
-    Data {
-        ind1: u8,
-        ind2: u8,
-        subfields: Vec<(u8, String)>,
-    },
+    Data { ind1: u8, ind2: u8, subfields: Vec<(u8, String)> },
 }
 
 /// Leader layout parameters passed from the compiled config.
@@ -74,11 +69,7 @@ pub(crate) struct LeaderLayout<'a> {
     pub directory_map: &'a [u8; 4],
 }
 
-pub(crate) fn build_iso2709(
-    encoding: &Encoding,
-    fields: &[([u8; 3], ReverseFieldData)],
-    layout: &LeaderLayout<'_>,
-) -> Result<OwnedRawRecord, MarcError> {
+pub(crate) fn build_iso2709(encoding: &Encoding, fields: &[([u8; 3], ReverseFieldData)], layout: &LeaderLayout<'_>) -> Result<OwnedRawRecord, MarcError> {
     let mut directory: Vec<u8> = Vec::new();
     let mut field_data: Vec<u8> = Vec::new();
     let mut offset: usize = 0;
@@ -90,11 +81,7 @@ pub(crate) fn build_iso2709(
                 field_bytes.extend_from_slice(&encoding.encode(text)?);
                 field_bytes.push(0x1E);
             }
-            ReverseFieldData::Data {
-                ind1,
-                ind2,
-                subfields,
-            } => {
+            ReverseFieldData::Data { ind1, ind2, subfields } => {
                 field_bytes.push(*ind1);
                 field_bytes.push(*ind2);
                 for (code, value) in subfields {
@@ -134,9 +121,7 @@ pub(crate) fn build_iso2709(
 
     let record_length = base_address + field_data.len() + 1;
     if record_length > 99999 {
-        return Err(MarcError::InvalidRecord(
-            "record too long for ISO2709 leader",
-        ));
+        return Err(MarcError::InvalidRecord("record too long for ISO2709 leader"));
     }
     leader_bytes[0..5].copy_from_slice(format!("{:0>5}", record_length).as_bytes());
 
@@ -145,7 +130,7 @@ pub(crate) fn build_iso2709(
     out.extend_from_slice(&directory);
     out.extend_from_slice(&field_data);
     out.push(0x1D);
-       
+
     Ok(OwnedRawRecord::new(out))
 }
 

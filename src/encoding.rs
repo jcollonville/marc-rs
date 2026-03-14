@@ -15,9 +15,7 @@ pub enum Encoding {
 impl Encoding {
     pub fn decode<'a>(&self, bytes: &'a [u8]) -> Result<std::borrow::Cow<'a, str>, crate::MarcError> {
         match self {
-            Encoding::Utf8 => std::str::from_utf8(bytes)
-                .map(std::borrow::Cow::Borrowed)
-                .map_err(|_| crate::MarcError::Encoding),
+            Encoding::Utf8 => std::str::from_utf8(bytes).map(std::borrow::Cow::Borrowed).map_err(|_| crate::MarcError::Encoding),
             Encoding::Marc8 => {
                 // TODO: proper MARC-8 support; for now treat as ISO-8859-1 fallback.
                 let (cow, _, had_errors) = encoding_rs::WINDOWS_1252.decode(bytes);
@@ -27,10 +25,8 @@ impl Encoding {
                     Ok(cow)
                 }
             }
-            Encoding::Iso5426 => {
-                decode_iso5426(bytes).map(std::borrow::Cow::Owned).map_err(|_| crate::MarcError::Encoding)
-            }
-           
+            Encoding::Iso5426 => decode_iso5426(bytes).map(std::borrow::Cow::Owned).map_err(|_| crate::MarcError::Encoding),
+
             Encoding::Other(enc) => {
                 let (cow, _, had_errors) = enc.decode(bytes);
                 if had_errors {
@@ -66,7 +62,6 @@ impl Encoding {
         }
     }
 }
-
 
 lazy_static! {
     /// Mapping ISO 5426 (bytes > 0x7F) to Unicode code points.
@@ -115,7 +110,7 @@ lazy_static! {
         m.insert(0xD1, 0x0332); // Low line (macron below)
         m.insert(0xD2, 0x0325); // Ring below
         m.insert(0xD6, 0x0326); // Comma below
-        
+
         // --- DOUBLE DIACRITICS (span two letters) ---
         m.insert(0xE1, 0x0361); // Double inverted breve (t͡s)
         m.insert(0xE2, 0x0360); // Double tilde
@@ -152,7 +147,7 @@ fn decode_iso5426(data: &[u8]) -> Result<String, String> {
                 if let Some(&accent_unicode) = ISO5426_CORRECT.get(&(b as u32)) {
                     if i + 1 < data.len() {
                         let next_byte = data[i + 1];
-                        
+
                         // 1. Push base letter first (Unicode order)
                         let base_char = if next_byte > 0x7F {
                             *ISO5426_CORRECT.get(&(next_byte as u32)).unwrap_or(&(next_byte as u32))
@@ -191,16 +186,12 @@ fn decode_iso5426(data: &[u8]) -> Result<String, String> {
     }
 
     // Convert to String and NFC normalization (crucial to merge base + accent)
-    let raw_string: String = out_codes
-        .into_iter()
-        .filter_map(std::char::from_u32)
-        .collect();
+    let raw_string: String = out_codes.into_iter().filter_map(std::char::from_u32).collect();
 
     Ok(raw_string.nfc().collect())
 }
 
 /// Encode UTF-8 string to ISO-5426 bytes
-
 
 fn encode_iso5426(text: &str) -> Result<Vec<u8>, String> {
     let mut result = Vec::with_capacity(text.len());
@@ -232,7 +223,7 @@ fn encode_iso5426(text: &str) -> Result<Vec<u8>, String> {
                     } else {
                         return Err(format!("Base character not supported: {}", ch));
                     }
-                    
+
                     i += 2; // Consumed letter and its accent
                     continue;
                 }

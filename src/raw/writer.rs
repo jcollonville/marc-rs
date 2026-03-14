@@ -26,4 +26,3 @@ impl<W: Write> BinaryWriter<W> {
         Ok(())
     }
 }
-

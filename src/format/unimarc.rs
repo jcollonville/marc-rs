@@ -10,8 +10,7 @@ const UNIMARC_JSON: &str = include_str!("../../resources/unimarc.json");
 
 lazy_static! {
     static ref COMPILED: CompiledConfig = {
-        let (_, compiled) = load_config(UNIMARC_JSON)
-            .expect("invalid unimarc.json config");
+        let (_, compiled) = load_config(UNIMARC_JSON).expect("invalid unimarc.json config");
         compiled
     };
 }
@@ -58,8 +57,6 @@ pub fn detect_encoding(record: &RawRecord<'_>) -> Result<Encoding, MarcError> {
     }
     Ok(encoding)
 }
-
-
 
 pub fn to_record(encoding: &Encoding, record: &RawRecord<'_>) -> Result<Record, MarcError> {
     COMPILED.to_record(encoding, record)

@@ -17,14 +17,8 @@ impl<W: Write> XmlWriter<W> {
     }
 
     pub fn start_collection(&mut self) -> Result<(), MarcError> {
-        writeln!(
-            self.writer,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        )?;
-        writeln!(
-            self.writer,
-            "<collection xmlns=\"http://www.loc.gov/MARC21/slim\">"
-        )?;
+        writeln!(self.writer, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")?;
+        writeln!(self.writer, "<collection xmlns=\"http://www.loc.gov/MARC21/slim\">")?;
         Ok(())
     }
 
@@ -35,11 +29,7 @@ impl<W: Write> XmlWriter<W> {
 
     /// Write a raw ISO2709 record as a MARC-XML `<record>` element.
     /// Uses `encoding_override` when provided, otherwise detects from the record.
-    pub fn write_raw(
-        &mut self,
-        raw: &RawRecord,
-        encoding_override: Option<Encoding>,
-    ) -> Result<(), MarcError> {
+    pub fn write_raw(&mut self, raw: &RawRecord, encoding_override: Option<Encoding>) -> Result<(), MarcError> {
         let format = MarcFormat::detect(raw, encoding_override)?;
 
         writeln!(self.writer, "  <record>")?;
@@ -55,26 +45,13 @@ impl<W: Write> XmlWriter<W> {
                     let tag_str = String::from_utf8_lossy(&tag);
                     let clean = strip_field_terminator(data);
                     let text = format.encoding().decode(clean).unwrap_or_else(|_| "".into());
-                    writeln!(
-                        self.writer,
-                        "    <controlfield tag=\"{tag_str}\">{}</controlfield>",
-                        xml_escape(&text)
-                    )?;
+                    writeln!(self.writer, "    <controlfield tag=\"{tag_str}\">{}</controlfield>", xml_escape(&text))?;
                 }
-                RawField::Data {
-                    tag,
-                    indicators,
-                    body,
-                } => {
+                RawField::Data { tag, indicators, body } => {
                     let tag_str = String::from_utf8_lossy(&tag);
                     let ind1 = indicators[0] as char;
                     let ind2 = indicators[1] as char;
-                    writeln!(
-                        self.writer,
-                        "    <datafield tag=\"{tag_str}\" ind1=\"{}\" ind2=\"{}\">",
-                        xml_escape_char(ind1),
-                        xml_escape_char(ind2)
-                    )?;
+                    writeln!(self.writer, "    <datafield tag=\"{tag_str}\" ind1=\"{}\" ind2=\"{}\">", xml_escape_char(ind1), xml_escape_char(ind2))?;
 
                     let mut pos = 0;
                     while pos < body.len() {
@@ -88,14 +65,8 @@ impl<W: Write> XmlWriter<W> {
                             while end < body.len() && body[end] != 0x1F && body[end] != 0x1E {
                                 end += 1;
                             }
-                            let text =
-                                format.encoding().decode(&body[start..end]).unwrap_or_else(|_| "".into());
-                            writeln!(
-                                self.writer,
-                                "      <subfield code=\"{}\">{}</subfield>",
-                                xml_escape_char(code),
-                                xml_escape(&text)
-                            )?;
+                            let text = format.encoding().decode(&body[start..end]).unwrap_or_else(|_| "".into());
+                            writeln!(self.writer, "      <subfield code=\"{}\">{}</subfield>", xml_escape_char(code), xml_escape(&text))?;
                             pos = end;
                         } else if body[pos] == 0x1E {
                             break;
