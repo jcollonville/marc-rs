@@ -10,6 +10,8 @@ pub enum MarcFormat {
 }
 
 impl MarcFormat {
+    /// Auto-detects the format by looking for fields 200 (UNIMARC) and 245 (MARC21).
+    /// A record with 200 but without 245 is treated as UNIMARC; otherwise MARC21.
     pub fn detect(record: &RawRecord<'_>, encoding_override: Option<Encoding>) -> Result<Self, MarcError> {
         let mut has_200 = false;
         let mut has_245 = false;

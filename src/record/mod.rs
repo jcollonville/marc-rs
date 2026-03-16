@@ -206,6 +206,78 @@ impl Record {
     pub fn specimens(&self) -> &[Specimen] {
         &self.local.specimens
     }
+
+    pub fn media_type(&self) -> &RecordType {
+        &self.leader.record_type
+    }
+
+    /// Join all ISBN values with ", ". Returns None if there are no ISBNs.
+    pub fn isbn_string(&self) -> Option<String> {
+        if self.identification.isbn.is_empty() {
+            return None;
+        }
+        Some(self.identification.isbn.iter().map(|i| i.value.as_str()).collect::<Vec<_>>().join(", "))
+    }
+
+    /// Main title string (`description.title.main`).
+    pub fn title_main(&self) -> Option<&str> {
+        self.description.title.as_ref().map(|t| t.main.as_str())
+    }
+
+    /// Value of the first subject entry.
+    pub fn subject_main(&self) -> Option<&str> {
+        self.indexing.subjects.first().map(|s| s.value.as_str())
+    }
+
+    /// All uncontrolled index terms.
+    pub fn keywords(&self) -> &[String] {
+        &self.indexing.uncontrolled_terms
+    }
+
+    /// Date of the first publication entry.
+    pub fn publication_date(&self) -> Option<&str> {
+        self.description.publication.first().and_then(|p| p.date.as_deref())
+    }
+
+    /// Extent field of the physical description.
+    pub fn page_extent(&self) -> Option<&str> {
+        self.description.physical_description.as_ref().and_then(|p| p.extent.as_deref())
+    }
+
+    /// Dimensions field of the physical description.
+    pub fn dimensions(&self) -> Option<&str> {
+        self.description.physical_description.as_ref().and_then(|p| p.dimensions.as_deref())
+    }
+
+    /// Accompanying material field of the physical description.
+    pub fn accompanying_material_text(&self) -> Option<&str> {
+        self.description.physical_description.as_ref().and_then(|p| p.accompanying_material.as_deref())
+    }
+
+    /// Text of the first note of type `Contents`.
+    pub fn table_of_contents_text(&self) -> Option<&str> {
+        self.notes.items.iter().find_map(|n| matches!(n.note_type, Some(NoteType::Contents)).then(|| n.text.as_str()))
+    }
+
+    /// Text of the first note of type `Summary`.
+    pub fn abstract_text(&self) -> Option<&str> {
+        self.notes.items.iter().find_map(|n| matches!(n.note_type, Some(NoteType::Summary)).then(|| n.text.as_str()))
+    }
+
+    /// Text of the first note of type `General`.
+    pub fn general_note_text(&self) -> Option<&str> {
+        self.notes.items.iter().find_map(|n| matches!(n.note_type, Some(NoteType::General)).then(|| n.text.as_str()))
+    }
+
+    /// Primary language (first in `coded.languages`).
+    pub fn lang_primary(&self) -> Option<&Language> {
+        self.coded.languages.first()
+    }
+
+    /// Original language (first in `coded.original_languages`).
+    pub fn lang_original(&self) -> Option<&Language> {
+        self.coded.original_languages.first()
+    }
 }
 
 /// 0XX - Identification block

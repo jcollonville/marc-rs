@@ -3,20 +3,33 @@
 
 # marc-rs
 
-A Rust library for parsing and writing MARC21, UNIMARC, and MARC XML bibliographic records.
+Rust library for reading and writing bibliographic records in **MARC21**, **UNIMARC**, and **MARC XML** formats.
+
+## What the library does
+
+```
+.mrc / .xml file
+      │
+      ▼
+ RawRecord          ← zero-copy view over raw ISO2709 bytes
+      │  JSON dictionary (marc21.json / unimarc.json)
+      ▼
+   Record           ← structured semantic model, serializable to JSON
+```
+
+The format (MARC21 or UNIMARC) and the character encoding are **auto-detected** on read.
+The reverse conversion (`Record → binary`) is also supported.
 
 ## Features
 
-- Support for MARC21, UNIMARC, and MARC XML formats
-- Multiple character encodings (UTF-8, MARC-8, ISO-8859-*, ISO-5426)
-- Parse multiple records from a single buffer
-- Write single or multiple records
-- Serde support for serialization/deserialization
-- Comprehensive field type enums organized by category
+- Read and write binary MARC21, binary UNIMARC, MARC XML
+- Auto-detection of format and encoding
+- High-level `Record` model organized by blocks (0XX–9XX)
+- Helpers on `Record`: `title_main()`, `authors()`, `isbn()`, `media_type()`, etc.
+- Serde support: native JSON serialization/deserialization
+- Encodings: UTF-8, MARC-8, ISO-5426, ISO-8859-*
 
 ## Installation
-
-Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -25,161 +38,190 @@ marc-rs = "0.0.5"
 
 ## Usage
 
-### Parsing MARC21 Records
+### Read records from a file
 
 ```rust
-use marc_rs::{parse, FormatEncoding, MarcFormat, Encoding};
+use marc_rs::MarcReader;
 
-let data = b"..."; // MARC binary data
-let format_encoding = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
-let records = parse(data, format_encoding)?;
+let reader = MarcReader::from_file("records.mrc".as_ref())?;
+let records = reader.into_records()?;
 
-for record in records {
-    println!("Record with {} fields", record.data_fields.len());
+for record in &records {
+    println!("{:?}", record.title_main());
+    println!("{:?}", record.media_type());   // RecordType: LanguageMaterial, Video, Sound…
+    println!("{:?}", record.authors().collect::<Vec<_>>());
 }
 ```
 
-### Writing MARC XML
+### Read from bytes
 
 ```rust
-use marc_rs::{write, FormatEncoding, Record};
-use std::io::stdout;
+use marc_rs::{parse_records, MarcReader, Encoding};
 
-let records = vec![/* your records */];
-let format_encoding = FormatEncoding::marc_xml();
-write(&records, format_encoding, &mut stdout())?;
+// Auto-detect format + encoding
+let records = parse_records(&data)?;
+
+// Force encoding if the record is incorrectly declared
+let records = MarcReader::from_bytes(data)?
+    .with_encoding(Encoding::Iso5426)
+    .into_records()?;
 ```
 
-### Using Field Enums
+### Convert a Record to binary MARC21
 
 ```rust
-use marc_rs::{MainEntry, Title, Subject, MarcFormat};
+use marc_rs::{MarcFormat, Encoding};
 
-// Tags depend on the format
-let format = MarcFormat::Marc21;
-let main_entry_tag = MainEntry::PersonalName.tag(format); // "100" in MARC21, "700" in UNIMARC
-let title_tag = Title::TitleStatement.tag(format); // "245" in MARC21, "200" in UNIMARC
-let subject_tag = Subject::SubjectTopicalTerm.tag(format); // "650" in MARC21, "606" in UNIMARC
+let format = MarcFormat::Marc21(Encoding::Utf8);
+let raw = format.to_raw(&record)?;
+std::fs::write("out.mrc", raw.as_bytes())?;
 ```
 
-### Serde Support
-
-The crate includes Serde support for serialization/deserialization to/from MARC formats:
+### JSON serialization
 
 ```rust
-use marc_rs::{Record, FormatEncoding, MarcFormat, Encoding, serde_marc};
-use std::fs::File;
-
-// Deserialize from bytes
-let data = b"..."; // MARC binary data
-let format = FormatEncoding::new(MarcFormat::Marc21, Encoding::Marc8);
-let record = serde_marc::from_slice(data, format)?;
-
-// Deserialize from reader
-let file = File::open("record.mrc")?;
-let record = serde_marc::from_reader(file, format)?;
-
-// Deserialize from string (for XML)
-let xml = r#"<?xml version="1.0"?><record>...</record>"#;
-let xml_format = FormatEncoding::marc_xml();
-let record = serde_marc::from_str(xml, xml_format)?;
-
-// Serialize to bytes
-let bytes = serde_marc::to_vec(&record, format)?;
-
-// Serialize to writer
-let mut output = Vec::new();
-serde_marc::to_writer(&record, format, &mut output)?;
-
-// Serialize to string (for XML)
-let xml_string = serde_marc::to_string(&record, xml_format)?;
-
-// Multiple records
-let records = serde_marc::from_slice_many(data, format)?;
-let bytes = serde_marc::to_records(&records, format)?;
-
-// Or use JSON for cross-format serialization
-use serde_json;
-let json = serde_json::to_string(&record)?;
-let deserialized: Record = serde_json::from_str(&json)?;
+let json = serde_json::to_string_pretty(&record)?;
+let record: marc_rs::Record = serde_json::from_str(&json)?;
 ```
 
-## Format Support
+## How dictionaries work
 
-### MARC21
-- Binary format parsing and writing
-- XML format parsing and writing
-- Default encoding: MARC-8
+The translation between raw MARC fields and the `Record` model is driven by two JSON files:
+`resources/marc21.json` and `resources/unimarc.json`. These files are compiled into the binary via `include_str!`.
 
-### UNIMARC
-- Binary format parsing and writing
-- XML format parsing and writing
-- Default encoding: UTF-8
+### Dictionary structure
 
-### MARC XML
-- Full XML parsing with collection support
-- XML writing with automatic collection wrapping for multiple records
+```json
+{
+  "name": "marc21",
+  "leader": [ ... ],
+  "encoding_indicator": { ... },
+  "rules": { ... },
+  "blocks": [ ... ]
+}
+```
 
-## Character Encodings
+#### `leader`
 
-Supported encodings:
-- UTF-8
-- MARC-8 (fallback to ISO-8859-1)
-- ISO-8859-1 (Latin-1)
-- ISO-8859-2 (Latin-2)
-- ISO-8859-5 (Cyrillic)
-- ISO-8859-7 (Greek)
-- ISO-8859-15 (Latin-9)
-- ISO-5426 (Extension of the Latin alphabet for bibliographic information interchange)
+List of positions within the 24 bytes of the ISO2709 leader. Each entry extracts one or more bytes and translates them to a field of the model.
 
-## Field Categories
+```json
+{ "position": 6, "target": "record_type", "rules": [
+    { "raw": "a", "value": "languageMaterial" },
+    { "raw": "g", "value": "projectedMedium" }
+]}
+```
 
-The library provides enums for different field categories:
+→ Byte 6 of the leader becomes `record.leader.record_type`.
 
-- **Main Entry** (1XX): Personal names, corporate names, meeting names, uniform titles
-- **Title** (20X-24X): Title statements, varying forms, former titles
-- **Edition** (25X): Edition statements, cartographic data, computer file characteristics
-- **Physical Description** (3XX): Physical descriptions, playing time, publication frequency
-- **Series** (4XX): Series statements and added entries
-- **Notes** (5XX): General notes, contents notes, summary, etc.
-- **Subject Access** (6XX): Subject headings, topical terms, geographic names
-- **Added Entries** (70X-75X): Personal names, corporate names, uniform titles
-- **Linking Entries** (76X-78X): Series entries, translation entries, related entries
-- **Control Fields** (00X): Control numbers, fixed-length data elements
+#### `encoding_indicator`
 
-## Command Line Tool
+Indicates where to read the character encoding:
+- **MARC21**: byte 9 of the leader (`"a"` = UTF-8, ` ` = MARC-8)
+- **UNIMARC**: subfield `$a` of field 100, positions 26–28 (`"50"` = UTF-8, `"01"` = ISO-5426)
 
-The crate includes a CLI to read and convert MARC files:
+#### `rules`
+
+Named reusable translation tables. Example: the `"languages"` table is shared by all language fields to translate `"fre"` → `"french"`, `"eng"` → `"english"`, etc.
+
+#### `blocks`
+
+List of field blocks (0XX, 1XX, 2XX…). Each block contains **fields** (`FieldDef`) with their **subfields** (`SubfieldBinding`).
+
+A subfield binding maps a MARC subfield code to a dotted path in the `Record` model:
+
+```json
+{
+  "tag": "245",
+  "subfields": [
+    { "code": "a", "target": "description.title.main" },
+    { "code": "b", "target": "description.title.subtitle" },
+    { "code": "c", "target": "description.title.responsibility" }
+  ]
+}
+```
+
+For fields with fixed-length subfields (such as UNIMARC 100$a), a `"slice"` allows extracting a specific position:
+
+```json
+{ "code": "a", "target": "coded.date_entered_on_file", "slice": { "offset": 0, "length": 8 } }
+```
+
+### Format auto-detection
+
+On read, the engine checks whether the record contains field `200` (UNIMARC title) without field `245` (MARC21 title). If so → UNIMARC; otherwise → MARC21.
+
+### Adding new fields
+
+To map a field not yet supported, simply add an entry in the appropriate block of the JSON file — no Rust code to modify.
+
+## `Record` model
+
+```
+Record
+├── leader          (RecordType, BibliographicLevel, RecordStatus…)
+├── identification  (ISBN, ISSN, LCCN, control numbers…)
+├── coded           (languages, country, target audience, dates…)
+├── description     (title, edition, publication, physical description…)
+├── notes           (general notes, summary, table of contents…)
+├── links           (links to other records)
+├── associated_titles
+├── indexing        (subjects, classifications, uncontrolled terms)
+├── responsibility  (main and added entries)
+├── international   (cataloging sources, locations, electronic access)
+└── local           (specimens)
+```
+
+Available helpers on `Record`:
+
+| Method | Return |
+|--------|--------|
+| `media_type()` | `&RecordType` (text, video, sound…) |
+| `authors()` | `Iterator<Item = &Agent>` |
+| `titles()` | `Vec<&Title>` |
+| `title_main()` | `Option<&str>` |
+| `isbn()` | `&[Isbn]` |
+| `isbn_string()` | `Option<String>` |
+| `languages()` | `&[Language]` |
+| `lang_primary()` | `Option<&Language>` |
+| `lang_original()` | `Option<&Language>` |
+| `audience()` | `Option<&TargetAudience>` |
+| `subject_main()` | `Option<&str>` |
+| `keywords()` | `&[String]` |
+| `publication_date()` | `Option<&str>` |
+| `abstract_text()` | `Option<&str>` |
+| `specimens()` | `&[Specimen]` |
+
+## Command-line tool
 
 ```bash
-# Build the binary
-cargo build --bin marc-rs
+# Display fields in human-readable mode (auto-detection)
+cargo run --bin marc-rs -- records.mrc
 
-# View a MARC file (auto-detect format, human-readable fields output)
-cargo run --bin marc-rs -- path/to/file.mrc
+# JSON output
+cargo run --bin marc-rs -- records.mrc json
 
-# Output in JSON format
-cargo run --bin marc-rs -- path/to/file.mrc json
+# XML output
+cargo run --bin marc-rs -- records.mrc xml
 
-# Output in XML format
-cargo run --bin marc-rs -- path/to/file.mrc xml
+# Convert to MARC21 UTF-8
+cargo run --bin marc-rs -- records.mrc marc21-utf8 > out.mrc
 
-# Output in MARC21 binary format (e.g. UTF-8)
-cargo run --bin marc-rs -- path/to/file.mrc marc21-utf8 > output.mrc
+# Convert to UNIMARC ISO-5426
+cargo run --bin marc-rs -- records.mrc unimarc-iso5426 > out.mrc
 
-# Output in UNIMARC binary format
-cargo run --bin marc-rs -- path/to/file.mrc unimarc-utf8 > output.mrc
-
-# Force input encoding (overrides encoding declared in the record)
-cargo run --bin marc-rs -- --encoding utf8 path/to/file.mrc fields
+# Force input encoding
+cargo run --bin marc-rs -- --encoding utf8 records.mrc fields
 ```
 
-Supported output formats (`FORMAT`, default: `fields`):
-- **fields**: Human-readable text with leader, control fields, and data fields
-- **json**: JSON serialization (array of records) using serde_json
-- **xml**: MARC XML collection using the crate's XML writer
-- **marc21-&lt;enc&gt;**: MARC21 binary (e.g. `marc21-utf8`, `marc21-marc8`)
-- **unimarc-&lt;enc&gt;**: UNIMARC binary (e.g. `unimarc-utf8`, `unimarc-iso5426`)
+## Supported encodings
+
+| Identifier | Description |
+|------------|-------------|
+| `utf8` | Unicode UTF-8 |
+| `marc8` | MARC-8 (fallback to Windows-1252) |
+| `iso5426` | ISO-5426 (extended bibliographic Latin) |
+| `iso8859_2` to `iso8859_5` | Latin-2, Latin-3, Cyrillic… |
 
 ## References
 
