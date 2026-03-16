@@ -27,21 +27,31 @@ pub enum RecordStatus {
     Other(char),
 }
 
+
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RecordType {
     #[default]
     LanguageMaterial,
+    PrintedText,
+    ManuscriptText,
     NotatedMusic,
-    CartographicMaterial,
-    Manuscript,
-    ProjectedMedium,
-    Sound,
-    Visual,
-    ComputerFile,
+    ManuscriptMusic,
+    PrintedCartographic,
+    ManuscriptCartographic,
+    ProjectedOrVideo,
+    NonMusicalSound,
+    MusicalSound,
+    GraphicTwoDimensional,
+    ElectronicResource,
+    MultimediaKit,
     MixedMaterials,
+    ObjectThreeDimensional,
     Other(char),
 }
+
+
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

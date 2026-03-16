@@ -1,6 +1,6 @@
 [package]
 name = "marc-rs"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 authors = ["Jean Collonvillé <jcollonville@b-612.fr>"]
 description = "Rust library for MARC21, UNIMARC, and MARC XML format support"

@@ -9,14 +9,18 @@
     { "position": 6, "target": "record_type", "rules": [
       { "raw": "a", "value": "languageMaterial" },
       { "raw": "c", "value": "notatedMusic" },
+      { "raw": "d", "value": "notatedMusic" },
       { "raw": "e", "value": "cartographicMaterial" },
-      { "raw": "t", "value": "manuscript" },
+      { "raw": "f", "value": "cartographicMaterial" },
       { "raw": "g", "value": "projectedMedium" },
       { "raw": "i", "value": "sound" },
       { "raw": "j", "value": "sound" },
       { "raw": "k", "value": "visual" },
       { "raw": "m", "value": "computerFile" },
-      { "raw": "p", "value": "mixedMaterials" }
+      { "raw": "o", "value": "mixedMaterials" },
+      { "raw": "p", "value": "mixedMaterials" },
+      { "raw": "r", "value": "visual" },
+      { "raw": "t", "value": "manuscript" }
     ]},
     { "position": 7, "target": "bibliographic_level", "rules": [
       { "raw": "m", "value": "monograph" },
