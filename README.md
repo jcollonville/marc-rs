@@ -33,7 +33,7 @@ The reverse conversion (`Record → binary`) is also supported.
 
 ```toml
 [dependencies]
-marc-rs = "0.0.5"
+marc-rs = "0.0.7"
 ```
 
 ## Usage
@@ -74,7 +74,7 @@ use marc_rs::{MarcFormat, Encoding};
 
 let format = MarcFormat::Marc21(Encoding::Utf8);
 let raw = format.to_raw(&record)?;
-std::fs::write("out.mrc", raw.as_bytes())?;
+std::fs::write("out.mrc", raw.data())?;
 ```
 
 ### JSON serialization
@@ -168,7 +168,7 @@ Record
 ├── associated_titles
 ├── indexing        (subjects, classifications, uncontrolled terms)
 ├── responsibility  (main and added entries)
-├── international   (cataloging sources, locations, electronic access)
+├── international   (cataloging sources, locations, electronic access, holding institutions)
 └── local           (specimens)
 ```
 
@@ -190,28 +190,124 @@ Available helpers on `Record`:
 | `keywords()` | `&[String]` |
 | `publication_date()` | `Option<&str>` |
 | `abstract_text()` | `Option<&str>` |
+| `general_note_text()` | `Option<&str>` |
+| `table_of_contents_text()` | `Option<&str>` |
+| `page_extent()` | `Option<&str>` |
+| `dimensions()` | `Option<&str>` |
+| `accompanying_material_text()` | `Option<&str>` |
 | `specimens()` | `&[Specimen]` |
+
+## Derive macro: `#[derive(MarcPaths)]`
+
+The `marc-rs-derive` crate provides a procedural macro that generates the `MarcPaths` trait for every struct in the `Record` model. This trait is the bridge between the dictionary engine and the Rust structs: given a dotted path string like `"description.title.main"`, it can read or write the corresponding field at runtime without any reflection.
+
+### What the macro generates
+
+For each field of a struct (unless annotated with `#[marc(skip)]`), the macro inspects the type and classifies it:
+
+| Field type | Classification | Generated behaviour |
+|------------|---------------|---------------------|
+| `String` | scalar | set directly |
+| `Option<String>` | optional scalar | wrap in `Some` on write |
+| `Vec<String>` | vec of scalars | push on write |
+| `Option<T>` where T: MarcPaths | optional sub-struct | lazy-init with `get_or_insert_with(T::default)` |
+| `Vec<T>` where T: MarcPaths | vec of sub-structs | append a new item when the *creator field* is set; otherwise mutate the last item |
+| `T` (bare) | embedded sub-struct | delegate directly |
+
+The **creator field** of a struct is its first `String` or `Option<String>` field. When the engine encounters the creator path of a `Vec<T>` entry, it pushes a new `T::default()` and sets that field on it; subsequent subfield paths for the same entry update the last element.
+
+### Generated trait methods
+
+| Method | Purpose |
+|--------|---------|
+| `marc_set(path, value)` | Write a value at a dotted path |
+| `marc_get_option(path)` | Read an `Option<String>` from a dotted path |
+| `marc_get_vec(path)` | Read a `Vec<String>` from a dotted path |
+| `marc_path_kind(path)` | Classify the path (scalar / vec-push / vec-struct / option-init) — used by the engine to decide how to apply a subfield binding |
+| `marc_has_path(path)` | Check whether a path is valid for this struct |
+| `marc_is_vec_leaf(path)` | Check whether a path points to a `Vec` of scalars |
+| `marc_creator_field()` | Return the name of the creator field |
+
+### `#[marc(skip)]`
+
+Fields annotated with `#[marc(skip)]` are excluded from path routing. In `Record` this is used for `leader` (populated separately from the ISO2709 header bytes) and `encoding` (an internal hint, not mapped from the dictionary).
+
+### Example
+
+```rust
+#[derive(MarcPaths)]
+pub struct Description {
+    pub title: Option<Title>,       // path "title" → lazy-init Option<Title>
+    pub edition: Option<String>,    // path "edition" → Option<String>
+    pub publication: Vec<Publication>, // path "publication.date" → last or new Publication
+}
+```
+
+A dictionary rule `{ "target": "description.title.main" }` causes the engine to call:
+
+```
+record.marc_set("description.title.main", "Guerre et Paix")
+```
+
+which recursively traverses `description` → `title` (lazy-init) → sets the `main` field on `Title`.
+
+---
 
 ## Command-line tool
 
+The crate ships an optional standalone binary `marc-rs` for inspecting and converting MARC files from the terminal. Input format (binary ISO2709 or MARC-XML) is auto-detected.
+
+### Installation
+
 ```bash
-# Display fields in human-readable mode (auto-detection)
-cargo run --bin marc-rs -- records.mrc
+cargo install marc-rs
+```
 
-# JSON output
-cargo run --bin marc-rs -- records.mrc json
+### Usage
 
-# XML output
-cargo run --bin marc-rs -- records.mrc xml
+```bash
+# Display fields in human-readable form (default)
+marc-rs records.mrc
 
-# Convert to MARC21 UTF-8
-cargo run --bin marc-rs -- records.mrc marc21-utf8 > out.mrc
+# JSON array of all records
+marc-rs records.mrc json
 
-# Convert to UNIMARC ISO-5426
-cargo run --bin marc-rs -- records.mrc unimarc-iso5426 > out.mrc
+# MARC-XML output
+marc-rs records.mrc xml
 
-# Force input encoding
-cargo run --bin marc-rs -- --encoding utf8 records.mrc fields
+# Convert to MARC21 UTF-8 binary
+marc-rs records.mrc marc21-utf8 > out.mrc
+
+# Convert to MARC21 MARC-8 binary
+marc-rs records.mrc marc21-marc8 > out.mrc
+
+# Convert to UNIMARC ISO-5426 binary
+marc-rs records.mrc unimarc-iso5426 > out.mrc
+
+# Convert to UNIMARC UTF-8 binary
+marc-rs records.mrc unimarc-utf8 > out.mrc
+
+# Force input encoding (overrides what is declared in the record)
+marc-rs --encoding iso5426 records.mrc fields
+```
+
+Output format argument summary:
+
+| Format argument | Output |
+|----------------|--------|
+| `fields` (default) | Human-readable field/subfield listing |
+| `json` | JSON array of `Record` objects |
+| `xml` | MARC-XML collection |
+| `marc21-utf8` | Binary ISO2709, MARC21, UTF-8 |
+| `marc21-marc8` | Binary ISO2709, MARC21, MARC-8 |
+| `unimarc-utf8` | Binary ISO2709, UNIMARC, UTF-8 |
+| `unimarc-iso5426` | Binary ISO2709, UNIMARC, ISO-5426 |
+| `unimarc-iso8859-2/3/5` | Binary ISO2709, UNIMARC, Latin/Cyrillic |
+
+When using `cargo run` instead of an installed binary:
+
+```bash
+cargo run --bin marc-rs -- [--encoding <ENC>] <MARC-FILE> [FORMAT]
 ```
 
 ## Supported encodings
@@ -221,7 +317,7 @@ cargo run --bin marc-rs -- --encoding utf8 records.mrc fields
 | `utf8` | Unicode UTF-8 |
 | `marc8` | MARC-8 (fallback to Windows-1252) |
 | `iso5426` | ISO-5426 (extended bibliographic Latin) |
-| `iso8859_2` to `iso8859_5` | Latin-2, Latin-3, Cyrillic… |
+| `iso8859-2`, `iso8859-3`, `iso8859-5` | Latin-2, Latin-3, Cyrillic |
 
 ## References
 

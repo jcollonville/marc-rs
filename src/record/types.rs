@@ -300,14 +300,20 @@ impl Country {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TargetAudience {
-    General,
     Juvenile,
+    Preschool,
+    Primary,
+    Children,
     YoungAdult,
+    AdultSerious,
+    Adult,
+    General,
     Specialized,
     #[default]
     Unknown,
     Other(String),
 }
+
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
 #[serde(rename_all = "camelCase")]
