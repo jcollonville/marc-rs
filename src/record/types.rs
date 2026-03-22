@@ -409,6 +409,21 @@ impl Default for NoteType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Relator {
+    Author,
+    Illustrator,
+    Translator,
+    Editor,
+    PrefaceWriter,
+    Photographer,
+    Publisher,
+    Composer,
+    #[serde(untagged)]
+    Other(String),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Agent {
@@ -432,7 +447,7 @@ pub struct Person {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fuller_form: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub relator: Option<String>,
+    pub relator: Option<Relator>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

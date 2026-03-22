@@ -150,7 +150,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
             setter: Box::new(|_rec, _v| {}),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
-                Some(Agent::Person(p)) => p.relator.clone(),
+                Some(Agent::Person(p)) => p.relator.as_ref().map(|r| r.to_marc_str()),
                 _ => None,
             })),
         }),
@@ -284,7 +284,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
                     .added_entries
                     .iter()
                     .filter_map(|a| match a {
-                        Agent::Person(p) => p.relator.clone(),
+                        Agent::Person(p) => p.relator.as_ref().map(|r| r.to_marc_str()),
                         _ => None,
                     })
                     .collect()
@@ -1151,7 +1151,7 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         }
         (true, "relator") => {
             if let Some(Agent::Person(p)) = &mut rec.responsibility.main_entry {
-                p.relator = Some(value.to_string());
+                p.relator = Some(Relator::from_marc_str(value));
             }
         }
         (true, "subordinate_unit") => match &mut rec.responsibility.main_entry {
@@ -1226,7 +1226,7 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         }
         (false, "relator") => {
             if let Some(Agent::Person(p)) = rec.responsibility.added_entries.last_mut() {
-                p.relator = Some(value.to_string());
+                p.relator = Some(Relator::from_marc_str(value));
             }
         }
         (false, "subordinate_unit") => match rec.responsibility.added_entries.last_mut() {
@@ -1357,7 +1357,7 @@ fn agent_to_subfields(agent: &Agent, expected_type: Option<&str>, compiled: &Com
             (Agent::Person(p), "numeration") => p.numeration.clone(),
             (Agent::Person(p), "titles_associated") => p.titles_associated.clone(),
             (Agent::Person(p), "fuller_form") => p.fuller_form.clone(),
-            (Agent::Person(p), "relator") => p.relator.clone(),
+            (Agent::Person(p), "relator") => p.relator.as_ref().map(|r| r.to_marc_str()),
             (Agent::CorporateBody(c), "name") => Some(c.name.clone()),
             (Agent::CorporateBody(c), "subordinate_unit") => c.subordinate_unit.clone(),
             (Agent::CorporateBody(c), "location") => c.location.clone(),

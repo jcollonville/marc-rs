@@ -64,6 +64,7 @@ impl_from_rule_value!(ClassificationScheme, ClassificationScheme::Other);
 impl_from_rule_value!(SubjectType, SubjectType::Other);
 impl_from_rule_value!(NoteType, NoteType::Other);
 impl_from_rule_value!(LinkType, LinkType::Other);
+impl_from_rule_value!(Relator, Relator::Other);
 
 macro_rules! impl_from_rule_value_char {
     ($type:ty, $other:path) => {
@@ -132,6 +133,7 @@ impl_marc_leaf!(ClassificationScheme);
 impl_marc_leaf!(SubjectType);
 impl_marc_leaf!(NoteType);
 impl_marc_leaf!(LinkType);
+impl_marc_leaf!(Relator);
 
 /// High-level semantic representation of a MARC bibliographic record,
 /// organized following the standard block numbering (0XX-9XX).

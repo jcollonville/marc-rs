@@ -173,6 +173,18 @@
         { "raw": "x", "value": "unknown" },
         { "raw": "u", "value": "unknown" }
       ]
+    },
+    "relator": {
+      "entries": [
+        { "raw": "070", "value": "author" },
+        { "raw": "440", "value": "illustrator" },
+        { "raw": "730", "value": "translator" },
+        { "raw": "340", "value": "editor" },
+        { "raw": "080", "value": "prefaceWriter" },
+        { "raw": "600", "value": "photographer" },
+        { "raw": "651", "value": "publisher" },
+        { "raw": "230", "value": "composer" }
+      ]
     }
   },
   "blocks": [
@@ -721,7 +733,7 @@
             { "code": "b", "target": "responsibility.main_entry.forename" },
             { "code": "f", "target": "responsibility.main_entry.dates" },
             { "code": "c", "target": "responsibility.main_entry.titles_associated" },
-            { "code": "4", "target": "responsibility.main_entry.relator" }
+            { "code": "4", "target": "responsibility.main_entry.relator", "rules": "relator" }
           ]
         },
         {
@@ -732,7 +744,7 @@
             { "code": "b", "target": "responsibility.added_entries.forename" },
             { "code": "f", "target": "responsibility.added_entries.dates" },
             { "code": "c", "target": "responsibility.added_entries.titles_associated" },
-            { "code": "4", "target": "responsibility.added_entries.relator" }
+            { "code": "4", "target": "responsibility.added_entries.relator", "rules": "relator" }
           ]
         },
         {
@@ -743,7 +755,7 @@
             { "code": "b", "target": "responsibility.added_entries.forename" },
             { "code": "f", "target": "responsibility.added_entries.dates" },
             { "code": "c", "target": "responsibility.added_entries.titles_associated" },
-            { "code": "4", "target": "responsibility.added_entries.relator" }
+            { "code": "4", "target": "responsibility.added_entries.relator", "rules": "relator" }
           ]
         },
         {
