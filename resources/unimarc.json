@@ -451,7 +451,8 @@
           "subfields": [
             { "code": "0", "target": "links.records.identifier" },
             { "code": "t", "target": "links.records.title" },
-            { "code": "v", "target": "links.records.volume" }
+            { "code": "v", "target": "links.records.volume" },
+            { "code": "x", "target": "links.records.issn" }
           ]
         },
         {
