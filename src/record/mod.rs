@@ -205,8 +205,8 @@ impl Record {
         &self.identification.isbn
     }
 
-    pub fn specimens(&self) -> &[Specimen] {
-        &self.local.specimens
+    pub fn items(&self) -> &[Item] {
+        &self.local.items
     }
 
     pub fn media_type(&self) -> &RecordType {
@@ -464,5 +464,5 @@ pub struct International {
 #[serde(rename_all = "camelCase")]
 pub struct Local {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub specimens: Vec<Specimen>,
+    pub items: Vec<Item>,
 }

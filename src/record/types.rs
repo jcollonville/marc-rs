@@ -640,7 +640,7 @@ pub struct ElectronicLocation {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
 #[serde(rename_all = "camelCase")]
-pub struct Specimen {
+pub struct Item {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub library: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

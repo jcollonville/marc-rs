@@ -762,19 +762,19 @@
         {
           "tag": "995",
           "subfields": [
-            { "code": "a", "target": "local.specimens.library" },
-            { "code": "b", "target": "local.specimens.section" },
-            { "code": "c", "target": "local.specimens.sub_library" },
-            { "code": "d", "target": "local.specimens.section_code" },
-            { "code": "f", "target": "local.specimens.barcode" },
-            { "code": "k", "target": "local.specimens.call_number" },
-            { "code": "l", "target": "local.specimens.inventory_number" },
-            { "code": "m", "target": "local.specimens.creation_date" },
-            { "code": "n", "target": "local.specimens.modification_date" },
-            { "code": "r", "target": "local.specimens.item_type" },
-            { "code": "t", "target": "local.specimens.record_control_number" },
-            { "code": "v", "target": "local.specimens.document_type" },
-            { "code": "w", "target": "local.specimens.circulation_status" }
+            { "code": "a", "target": "local.items.library" },
+            { "code": "b", "target": "local.items.section" },
+            { "code": "c", "target": "local.items.sub_library" },
+            { "code": "d", "target": "local.items.section_code" },
+            { "code": "f", "target": "local.items.barcode" },
+            { "code": "k", "target": "local.items.call_number" },
+            { "code": "l", "target": "local.items.inventory_number" },
+            { "code": "m", "target": "local.items.creation_date" },
+            { "code": "n", "target": "local.items.modification_date" },
+            { "code": "r", "target": "local.items.item_type" },
+            { "code": "t", "target": "local.items.record_control_number" },
+            { "code": "v", "target": "local.items.document_type" },
+            { "code": "w", "target": "local.items.circulation_status" }
           ]
         }
       ]
