@@ -18,7 +18,7 @@ encoding_rs = "0.8"
 lazy_static = "1.4"
 unicode-normalization = "0.1"
 clap = { version = "4", features = ["derive"] }
-marc-rs-derive = { path = "marc-rs-derive", version = "0.1.0" }
+marc-rs-derive = { path = "marc-rs-derive", version = "0.1.1" }
 
 [[bin]]
 name = "marc-rs"
