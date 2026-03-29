@@ -1,6 +1,6 @@
 [package]
 name = "marc-rs-derive"
-version = "0.1.1"
+version = "1.0.0"
 edition = "2021"
 authors = ["Jean Collonvillé <jcollonville@b-612.fr>"]
 description = "Derive macros for marc-rs"
