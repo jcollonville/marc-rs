@@ -20,9 +20,9 @@ pub enum PathKind {
 
 pub trait MarcPaths: Sized {
     const IS_LEAF: bool;
-    fn from_marc_str(s: &str) -> Self;
+    fn from_marc_str(s: &str) -> Result<Self, &'static str>;
     fn to_marc_str(&self) -> String;
-    fn marc_set(&mut self, path: &str, value: &str) -> bool;
+    fn marc_set(&mut self, path: &str, value: &str) -> Result<bool, &'static str>;
     fn marc_get_option(&self, path: &str) -> Option<String>;
     fn marc_get_vec(&self, path: &str) -> Option<Vec<String>>;
     fn marc_path_kind(path: &str) -> Option<PathKind>;
@@ -95,14 +95,14 @@ macro_rules! impl_marc_leaf {
     ($ty:ty) => {
         impl MarcPaths for $ty {
             const IS_LEAF: bool = true;
-            fn from_marc_str(s: &str) -> Self {
-                <$ty as FromRuleValue>::from_rule_value(s)
+            fn from_marc_str(s: &str) -> Result<Self, &'static str> {
+                Ok(<$ty as FromRuleValue>::from_rule_value(s))
             }
             fn to_marc_str(&self) -> String {
                 <$ty as FromRuleValue>::to_rule_value(self)
             }
-            fn marc_set(&mut self, _: &str, _: &str) -> bool {
-                false
+            fn marc_set(&mut self, _: &str, _: &str) -> Result<bool, &'static str> {
+                Ok(false)
             }
             fn marc_get_option(&self, _: &str) -> Option<String> {
                 None

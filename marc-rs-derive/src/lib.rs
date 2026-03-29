@@ -57,12 +57,16 @@ fn classify(ty: &Type) -> FieldCat {
                 if let syn::PathArguments::AngleBracketed(ref ab) = seg.arguments {
                     if let Some(syn::GenericArgument::Type(inner)) = ab.args.first() {
                         let is_string = matches!(inner, Type::Path(ip) if ip.path.segments.last().map(|s| s.ident == "String").unwrap_or(false));
+                        let is_barcode = matches!(inner, Type::Path(ip) if ip.path.segments.last().map(|s| s.ident == "Barcode").unwrap_or(false));
                         if is_string {
                             return if id == "Option" {
                                 FieldCat::OptStr
                             } else {
                                 FieldCat::VecStr
                             };
+                        }
+                        if is_barcode && id == "Option" {
+                            return FieldCat::OptType(inner.clone());
                         }
                         return if id == "Option" {
                             FieldCat::OptType(inner.clone())
@@ -124,12 +128,12 @@ fn impl_marc_paths(input: &DeriveInput) -> syn::Result<TokenStream2> {
         impl crate::record::MarcPaths for #name {
             const IS_LEAF: bool = false;
 
-            fn from_marc_str(_s: &str) -> Self { unreachable!("container") }
+            fn from_marc_str(_s: &str) -> Result<Self, &'static str> { unreachable!("container") }
             fn to_marc_str(&self) -> String { unreachable!("container") }
 
-            fn marc_set(&mut self, path: &str, value: &str) -> bool {
+            fn marc_set(&mut self, path: &str, value: &str) -> Result<bool, &'static str> {
                 #set_body
-                false
+                Ok(false)
             }
 
             fn marc_get_option(&self, path: &str) -> Option<String> {
@@ -171,19 +175,19 @@ fn gen_set(fields: &[FInfo]) -> TokenStream2 {
         let prefix = format!("{}.", name_s);
         match &f.cat {
             FieldCat::Str => quote! {
-                if path == #name_s { self.#id = value.to_string(); return true; }
+                if path == #name_s { self.#id = value.to_string(); return Ok(true); }
             },
             FieldCat::OptStr => quote! {
-                if path == #name_s { self.#id = Some(value.to_string()); return true; }
+                if path == #name_s { self.#id = Some(value.to_string()); return Ok(true); }
             },
             FieldCat::VecStr => quote! {
-                if path == #name_s { self.#id.push(value.to_string()); return true; }
+                if path == #name_s { self.#id.push(value.to_string()); return Ok(true); }
             },
             FieldCat::OptType(inner) => quote! {
                 if <#inner as crate::record::MarcPaths>::IS_LEAF {
                     if path == #name_s {
-                        self.#id = Some(<#inner as crate::record::MarcPaths>::from_marc_str(value));
-                        return true;
+                        self.#id = Some(<#inner as crate::record::MarcPaths>::from_marc_str(value)?);
+                        return Ok(true);
                     }
                 } else if let Some(rest) = path.strip_prefix(#prefix) {
                     let inner = self.#id.get_or_insert_with(#inner::default);
@@ -193,26 +197,26 @@ fn gen_set(fields: &[FInfo]) -> TokenStream2 {
             FieldCat::VecType(inner) => quote! {
                 if <#inner as crate::record::MarcPaths>::IS_LEAF {
                     if path == #name_s {
-                        self.#id.push(<#inner as crate::record::MarcPaths>::from_marc_str(value));
-                        return true;
+                        self.#id.push(<#inner as crate::record::MarcPaths>::from_marc_str(value)?);
+                        return Ok(true);
                     }
                 } else if let Some(rest) = path.strip_prefix(#prefix) {
                     if rest == <#inner as crate::record::MarcPaths>::marc_creator_field() {
                         let mut item = #inner::default();
-                        item.marc_set(rest, value);
+                        item.marc_set(rest, value)?;
                         self.#id.push(item);
-                        return true;
+                        return Ok(true);
                     } else if let Some(last) = self.#id.last_mut() {
                         return last.marc_set(rest, value);
                     }
-                    return false;
+                    return Ok(false);
                 }
             },
             FieldCat::BareType(inner) => quote! {
                 if <#inner as crate::record::MarcPaths>::IS_LEAF {
                     if path == #name_s {
-                        self.#id = <#inner as crate::record::MarcPaths>::from_marc_str(value);
-                        return true;
+                        self.#id = <#inner as crate::record::MarcPaths>::from_marc_str(value)?;
+                        return Ok(true);
                     }
                 } else if let Some(rest) = path.strip_prefix(#prefix) {
                     return self.#id.marc_set(rest, value);

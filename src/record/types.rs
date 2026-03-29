@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use std::fmt;
+use std::ops::Deref;
+use std::str::FromStr;
 
 use marc_rs_derive::MarcPaths;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -638,6 +641,140 @@ pub struct ElectronicLocation {
     pub public_note: Option<String>,
 }
 
+/// Item barcode: no whitespace allowed (invalid values fail MARC mapping and serde).
+/// Default is empty (used by `MarcPaths` codegen only; prefer `Option<Barcode>` for absence).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct Barcode(String);
+
+impl Barcode {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+
+    fn validate(s: &str) -> Result<(), &'static str> {
+        if s.chars().any(|c| c.is_whitespace()) {
+            Err("barcode must not contain whitespace")
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl Deref for Barcode {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Barcode {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Barcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for Barcode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::validate(s)?;
+        Ok(Barcode(s.to_string()))
+    }
+}
+
+impl TryFrom<&str> for Barcode {
+    type Error = &'static str;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse()
+    }
+}
+
+impl TryFrom<String> for Barcode {
+    type Error = &'static str;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::validate(&s)?;
+        Ok(Barcode(s))
+    }
+}
+
+impl From<Barcode> for String {
+    fn from(b: Barcode) -> Self {
+        b.0
+    }
+}
+
+impl Serialize for Barcode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Barcode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Barcode::try_from(s).map_err(serde::de::Error::custom)
+    }
+}
+
+impl super::MarcPaths for Barcode {
+    const IS_LEAF: bool = true;
+
+    fn from_marc_str(s: &str) -> Result<Self, &'static str> {
+        s.parse()
+    }
+
+    fn to_marc_str(&self) -> String {
+        self.0.clone()
+    }
+
+    fn marc_set(&mut self, _: &str, _: &str) -> Result<bool, &'static str> {
+        Ok(false)
+    }
+
+    fn marc_get_option(&self, _: &str) -> Option<String> {
+        None
+    }
+
+    fn marc_get_vec(&self, _: &str) -> Option<Vec<String>> {
+        None
+    }
+
+    fn marc_path_kind(_: &str) -> Option<super::PathKind> {
+        None
+    }
+
+    fn marc_has_path(_: &str) -> bool {
+        false
+    }
+
+    fn marc_is_vec_leaf(_: &str) -> bool {
+        false
+    }
+
+    fn marc_creator_field() -> &'static str {
+        ""
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
 #[serde(rename_all = "camelCase")]
 pub struct Item {
@@ -652,7 +789,7 @@ pub struct Item {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub level_code: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub barcode: Option<String>,
+    pub barcode: Option<Barcode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_number: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

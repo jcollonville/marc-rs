@@ -41,7 +41,7 @@ impl std::error::Error for ConfigError {}
 // Path resolver: known paths -> typed getter/setter closures
 // ---------------------------------------------------------------------------
 
-type Setter = Box<dyn Fn(&mut Record, &str) + Send + Sync>;
+type Setter = Box<dyn Fn(&mut Record, &str) -> Result<(), MarcError> + Send + Sync>;
 type VecGetter = Box<dyn Fn(&Record) -> Vec<String> + Send + Sync>;
 type OptionGetter = Box<dyn Fn(&Record) -> Option<String> + Send + Sync>;
 
@@ -65,7 +65,8 @@ fn resolve_path(path: &str) -> Result<ResolvedPath, ConfigError> {
     let po = path.to_string();
 
     let setter: Setter = Box::new(move |rec, v| {
-        rec.marc_set(&ps, v);
+        rec.marc_set(&ps, v)?;
+        Ok(())
     });
 
     let vec_getter: Option<VecGetter> = match kind {
@@ -91,7 +92,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         // -- main_entry getters --
         "responsibility.main_entry.name" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => Some(p.name.clone()),
@@ -102,7 +103,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.forename" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.forename.clone(),
@@ -111,7 +112,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.dates" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.dates.clone(),
@@ -120,7 +121,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.numeration" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.numeration.clone(),
@@ -129,7 +130,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.titles_associated" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.titles_associated.clone(),
@@ -138,7 +139,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.fuller_form" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.fuller_form.clone(),
@@ -147,7 +148,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.relator" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::Person(p)) => p.relator.as_ref().map(|r| r.to_marc_str()),
@@ -156,7 +157,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.subordinate_unit" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::CorporateBody(c)) => c.subordinate_unit.clone(),
@@ -166,7 +167,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.location" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::CorporateBody(c)) => c.location.clone(),
@@ -176,7 +177,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.main_entry.date" => Ok(ResolvedPath {
             kind: PathKind::OptionInit,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: None,
             option_getter: Some(Box::new(|rec| match &rec.responsibility.main_entry {
                 Some(Agent::CorporateBody(c)) => c.date.clone(),
@@ -187,7 +188,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         // -- added_entries getters --
         "responsibility.added_entries.name" => Ok(ResolvedPath {
             kind: PathKind::VecStructCreator,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -203,7 +204,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.forename" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -218,7 +219,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.dates" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -233,7 +234,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.numeration" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -248,7 +249,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.titles_associated" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -263,7 +264,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.fuller_form" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -278,7 +279,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.relator" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -293,7 +294,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.subordinate_unit" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -309,7 +310,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.location" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -325,7 +326,7 @@ fn resolve_agent_path(path: &str) -> Result<ResolvedPath, ConfigError> {
         }),
         "responsibility.added_entries.date" => Ok(ResolvedPath {
             kind: PathKind::VecStructField,
-            setter: Box::new(|_rec, _v| {}),
+            setter: Box::new(|_rec, _v| Ok(())),
             vec_getter: Some(Box::new(|rec| {
                 rec.responsibility
                     .added_entries
@@ -693,7 +694,7 @@ impl CompiledConfig {
                                 continue;
                             }
                             let translated = forward_translate(trimmed, &ct.rules_entries, &ct.rules_default);
-                            (ct.resolved.setter)(&mut rec, &translated);
+                            (ct.resolved.setter)(&mut rec, &translated)?;
                         }
                     }
                     RawField::Data { body, .. } => {
@@ -714,7 +715,7 @@ impl CompiledConfig {
                                 if is_agent_path(&binding.target_path) {
                                     apply_agent_forward(&mut rec, &binding.target_path, &translated, compiled.field_type.as_deref());
                                 } else {
-                                    (binding.resolved.setter)(&mut rec, &translated);
+                                    (binding.resolved.setter)(&mut rec, &translated)?;
                                 }
                             }
                         }
@@ -1151,7 +1152,7 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         }
         (true, "relator") => {
             if let Some(Agent::Person(p)) = &mut rec.responsibility.main_entry {
-                p.relator = Some(Relator::from_marc_str(value));
+                p.relator = Some(Relator::from_marc_str(value).expect("relator"));
             }
         }
         (true, "subordinate_unit") => match &mut rec.responsibility.main_entry {
@@ -1226,7 +1227,7 @@ fn apply_agent_forward(rec: &mut Record, path: &str, value: &str, agent_type: Op
         }
         (false, "relator") => {
             if let Some(Agent::Person(p)) = rec.responsibility.added_entries.last_mut() {
-                p.relator = Some(Relator::from_marc_str(value));
+                p.relator = Some(Relator::from_marc_str(value).expect("relator"));
             }
         }
         (false, "subordinate_unit") => match rec.responsibility.added_entries.last_mut() {
@@ -1517,8 +1518,8 @@ mod tests {
             "international.location_call_numbers.country_code",
             "international.electronic_locations.uri",
             // local
-            "local.specimens.library",
-            "local.specimens.barcode",
+            "local.items.library",
+            "local.items.barcode",
             // responsibility (agent paths)
             "responsibility.main_entry.name",
             "responsibility.main_entry.forename",
@@ -1568,7 +1569,7 @@ mod tests {
             ("notes.items.text", VecStructCreator),
             ("notes.items.note_type", VecStructField),
             ("indexing.subjects.value", VecStructCreator),
-            ("local.specimens.library", VecStructCreator),
+            ("local.items.library", VecStructCreator),
             ("international.holding_institutions", VecPush),
         ];
         for (path, expected) in &cases {
@@ -1580,24 +1581,36 @@ mod tests {
     #[test]
     fn marc_set_and_get_option_string() {
         let mut rec = Record::default();
-        rec.marc_set("identification.record_id", "REC001");
+        rec.marc_set("identification.record_id", "REC001").unwrap();
         assert_eq!(rec.marc_get_option("identification.record_id"), Some("REC001".to_string()));
+    }
+
+    #[test]
+    fn marc_set_barcode_rejects_whitespace() {
+        let mut rec = Record::default();
+        rec.marc_set("local.items.library", "MAIN").unwrap();
+        assert_eq!(
+            rec.marc_set("local.items.barcode", "12 34"),
+            Err("barcode must not contain whitespace")
+        );
+        rec.marc_set("local.items.barcode", "12345").unwrap();
+        assert_eq!(rec.local.items[0].barcode.as_ref().map(|b| b.as_str()), Some("12345"));
     }
 
     #[test]
     fn marc_set_and_get_vec_string() {
         let mut rec = Record::default();
-        rec.marc_set("identification.national_bibliography_numbers", "NBN1");
-        rec.marc_set("identification.national_bibliography_numbers", "NBN2");
+        rec.marc_set("identification.national_bibliography_numbers", "NBN1").unwrap();
+        rec.marc_set("identification.national_bibliography_numbers", "NBN2").unwrap();
         assert_eq!(rec.marc_get_vec("identification.national_bibliography_numbers"), Some(vec!["NBN1".to_string(), "NBN2".to_string()]));
     }
 
     #[test]
     fn marc_set_vec_struct_creator_and_field() {
         let mut rec = Record::default();
-        rec.marc_set("identification.isbn.value", "978-0-13-110362-7");
-        rec.marc_set("identification.isbn.qualifying", "hardcover");
-        rec.marc_set("identification.isbn.value", "978-0-13-110363-4");
+        rec.marc_set("identification.isbn.value", "978-0-13-110362-7").unwrap();
+        rec.marc_set("identification.isbn.qualifying", "hardcover").unwrap();
+        rec.marc_set("identification.isbn.value", "978-0-13-110363-4").unwrap();
 
         assert_eq!(rec.identification.isbn.len(), 2);
         assert_eq!(rec.identification.isbn[0].value, "978-0-13-110362-7");
@@ -1608,8 +1621,8 @@ mod tests {
     #[test]
     fn marc_set_option_init() {
         let mut rec = Record::default();
-        rec.marc_set("description.title.main", "Test Title");
-        rec.marc_set("description.title.subtitle", "A Subtitle");
+        rec.marc_set("description.title.main", "Test Title").unwrap();
+        rec.marc_set("description.title.subtitle", "A Subtitle").unwrap();
 
         let title = rec.description.title.as_ref().unwrap();
         assert_eq!(title.main, "Test Title");
@@ -1619,23 +1632,23 @@ mod tests {
     #[test]
     fn marc_set_vec_push_leaf_value() {
         let mut rec = Record::default();
-        rec.marc_set("coded.languages", "fre");
-        rec.marc_set("coded.languages", "eng");
+        rec.marc_set("coded.languages", "fre").unwrap();
+        rec.marc_set("coded.languages", "eng").unwrap();
         assert_eq!(rec.coded.languages.len(), 2);
     }
 
     #[test]
     fn marc_set_option_leaf_value() {
         let mut rec = Record::default();
-        rec.marc_set("coded.country", "xxu");
+        rec.marc_set("coded.country", "xxu").unwrap();
         assert!(rec.coded.country.is_some());
     }
 
     #[test]
     fn marc_set_bare_leaf_value() {
         let mut rec = Record::default();
-        rec.marc_set("indexing.subjects.value", "Mathematics");
-        rec.marc_set("indexing.subjects.heading_type", "topical");
+        rec.marc_set("indexing.subjects.value", "Mathematics").unwrap();
+        rec.marc_set("indexing.subjects.heading_type", "topical").unwrap();
         assert_eq!(rec.indexing.subjects.len(), 1);
         assert_eq!(rec.indexing.subjects[0].value, "Mathematics");
     }
@@ -1643,9 +1656,9 @@ mod tests {
     #[test]
     fn marc_get_vec_through_vec_struct() {
         let mut rec = Record::default();
-        rec.marc_set("notes.items.text", "Note 1");
-        rec.marc_set("notes.items.note_type", "general");
-        rec.marc_set("notes.items.text", "Note 2");
+        rec.marc_set("notes.items.text", "Note 1").unwrap();
+        rec.marc_set("notes.items.note_type", "general").unwrap();
+        rec.marc_set("notes.items.text", "Note 2").unwrap();
 
         let texts = rec.marc_get_vec("notes.items.text").unwrap();
         assert_eq!(texts, vec!["Note 1", "Note 2"]);
@@ -1657,15 +1670,15 @@ mod tests {
     #[test]
     fn marc_get_option_through_option_struct() {
         let mut rec = Record::default();
-        rec.marc_set("description.physical_description.extent", "300 p.");
+        rec.marc_set("description.physical_description.extent", "300 p.").unwrap();
         assert_eq!(rec.marc_get_option("description.physical_description.extent"), Some("300 p.".to_string()));
     }
 
     #[test]
     fn marc_get_vec_through_option_struct() {
         let mut rec = Record::default();
-        rec.marc_set("description.title.parallel", "Titre parallèle");
-        rec.marc_set("description.title.parallel", "Another parallel");
+        rec.marc_set("description.title.parallel", "Titre parallèle").unwrap();
+        rec.marc_set("description.title.parallel", "Another parallel").unwrap();
         let v = rec.marc_get_vec("description.title.parallel").unwrap();
         assert_eq!(v, vec!["Titre parallèle", "Another parallel"]);
     }
@@ -1694,9 +1707,9 @@ mod tests {
     #[test]
     fn marc_set_series_statement() {
         let mut rec = Record::default();
-        rec.marc_set("description.series.title", "Collection sciences");
-        rec.marc_set("description.series.volume", "vol. 3");
-        rec.marc_set("description.series.issn", "1234-5678");
+        rec.marc_set("description.series.title", "Collection sciences").unwrap();
+        rec.marc_set("description.series.volume", "vol. 3").unwrap();
+        rec.marc_set("description.series.issn", "1234-5678").unwrap();
         assert_eq!(rec.description.series.len(), 1);
         assert_eq!(rec.description.series[0].title, "Collection sciences");
         assert_eq!(rec.description.series[0].volume, Some("vol. 3".to_string()));
@@ -1706,9 +1719,9 @@ mod tests {
     #[test]
     fn marc_set_varying_titles() {
         let mut rec = Record::default();
-        rec.marc_set("description.varying_titles.title", "Alt Title");
-        rec.marc_set("description.varying_titles.remainder", "subtitle");
-        rec.marc_set("description.varying_titles.title", "Another Title");
+        rec.marc_set("description.varying_titles.title", "Alt Title").unwrap();
+        rec.marc_set("description.varying_titles.remainder", "subtitle").unwrap();
+        rec.marc_set("description.varying_titles.title", "Another Title").unwrap();
         assert_eq!(rec.description.varying_titles.len(), 2);
         assert_eq!(rec.description.varying_titles[0].title, "Alt Title");
         assert_eq!(rec.description.varying_titles[0].remainder, Some("subtitle".to_string()));
@@ -1717,11 +1730,11 @@ mod tests {
     #[test]
     fn marc_set_linked_record_with_rich_fields() {
         let mut rec = Record::default();
-        rec.marc_set("links.records.identifier", "REC123");
-        rec.marc_set("links.records.title", "Parent Work");
-        rec.marc_set("links.records.edition", "2nd ed.");
-        rec.marc_set("links.records.issn", "0000-1111");
-        rec.marc_set("links.records.volume", "v. 1");
+        rec.marc_set("links.records.identifier", "REC123").unwrap();
+        rec.marc_set("links.records.title", "Parent Work").unwrap();
+        rec.marc_set("links.records.edition", "2nd ed.").unwrap();
+        rec.marc_set("links.records.issn", "0000-1111").unwrap();
+        rec.marc_set("links.records.volume", "v. 1").unwrap();
         assert_eq!(rec.links.records.len(), 1);
         assert_eq!(rec.links.records[0].identifier, "REC123");
         assert_eq!(rec.links.records[0].title, Some("Parent Work".to_string()));
@@ -1733,46 +1746,46 @@ mod tests {
     #[test]
     fn marc_set_associated_titles() {
         let mut rec = Record::default();
-        rec.marc_set("associated_titles.key_title.main", "Key Title");
-        rec.marc_set("associated_titles.key_title.subtitle", "Qualifier");
+        rec.marc_set("associated_titles.key_title.main", "Key Title").unwrap();
+        rec.marc_set("associated_titles.key_title.subtitle", "Qualifier").unwrap();
         assert!(rec.associated_titles.key_title.is_some());
         let kt = rec.associated_titles.key_title.as_ref().unwrap();
         assert_eq!(kt.main, "Key Title");
         assert_eq!(kt.subtitle, Some("Qualifier".to_string()));
 
-        rec.marc_set("associated_titles.former_titles.main", "Old Title");
-        rec.marc_set("associated_titles.former_titles.main", "Older Title");
+        rec.marc_set("associated_titles.former_titles.main", "Old Title").unwrap();
+        rec.marc_set("associated_titles.former_titles.main", "Older Title").unwrap();
         assert_eq!(rec.associated_titles.former_titles.len(), 2);
 
-        rec.marc_set("associated_titles.variant_titles.main", "Variant");
+        rec.marc_set("associated_titles.variant_titles.main", "Variant").unwrap();
         assert_eq!(rec.associated_titles.variant_titles.len(), 1);
 
-        rec.marc_set("associated_titles.abbreviated_title", "Abbrev.");
+        rec.marc_set("associated_titles.abbreviated_title", "Abbrev.").unwrap();
         assert_eq!(rec.associated_titles.abbreviated_title, Some("Abbrev.".to_string()));
     }
 
     #[test]
     fn marc_set_uncontrolled_terms() {
         let mut rec = Record::default();
-        rec.marc_set("indexing.uncontrolled_terms", "term1");
-        rec.marc_set("indexing.uncontrolled_terms", "term2");
+        rec.marc_set("indexing.uncontrolled_terms", "term1").unwrap();
+        rec.marc_set("indexing.uncontrolled_terms", "term2").unwrap();
         assert_eq!(rec.indexing.uncontrolled_terms, vec!["term1", "term2"]);
     }
 
     #[test]
     fn marc_set_original_languages() {
         let mut rec = Record::default();
-        rec.marc_set("coded.original_languages", "english");
+        rec.marc_set("coded.original_languages", "english").unwrap();
         assert_eq!(rec.coded.original_languages.len(), 1);
     }
 
     #[test]
     fn marc_set_cataloging_source_extended() {
         let mut rec = Record::default();
-        rec.marc_set("international.cataloging_sources.agency", "DLC");
-        rec.marc_set("international.cataloging_sources.cataloging_language", "eng");
-        rec.marc_set("international.cataloging_sources.transcribing_agency", "DLC");
-        rec.marc_set("international.cataloging_sources.describing_conventions", "rda");
+        rec.marc_set("international.cataloging_sources.agency", "DLC").unwrap();
+        rec.marc_set("international.cataloging_sources.cataloging_language", "eng").unwrap();
+        rec.marc_set("international.cataloging_sources.transcribing_agency", "DLC").unwrap();
+        rec.marc_set("international.cataloging_sources.describing_conventions", "rda").unwrap();
         assert_eq!(rec.international.cataloging_sources.len(), 1);
         assert_eq!(rec.international.cataloging_sources[0].agency, Some("DLC".to_string()));
         assert_eq!(rec.international.cataloging_sources[0].cataloging_language, Some("eng".to_string()));
@@ -1781,11 +1794,11 @@ mod tests {
     #[test]
     fn marc_set_publication_manufacture() {
         let mut rec = Record::default();
-        rec.marc_set("description.publication.place", "New York");
-        rec.marc_set("description.publication.publisher", "Publisher");
-        rec.marc_set("description.publication.date", "2024");
-        rec.marc_set("description.publication.manufacture_place", "Factory City");
-        rec.marc_set("description.publication.manufacturer", "Printer Inc.");
+        rec.marc_set("description.publication.place", "New York").unwrap();
+        rec.marc_set("description.publication.publisher", "Publisher").unwrap();
+        rec.marc_set("description.publication.date", "2024").unwrap();
+        rec.marc_set("description.publication.manufacture_place", "Factory City").unwrap();
+        rec.marc_set("description.publication.manufacturer", "Printer Inc.").unwrap();
         assert_eq!(rec.description.publication.len(), 1);
         assert_eq!(rec.description.publication[0].manufacture_place, Some("Factory City".to_string()));
     }
@@ -1793,10 +1806,10 @@ mod tests {
     #[test]
     fn marc_set_title_extended_fields() {
         let mut rec = Record::default();
-        rec.marc_set("description.title.main", "Title");
-        rec.marc_set("description.title.medium", "[electronic resource]");
-        rec.marc_set("description.title.number_of_part", "Part 1");
-        rec.marc_set("description.title.name_of_part", "Introduction");
+        rec.marc_set("description.title.main", "Title").unwrap();
+        rec.marc_set("description.title.medium", "[electronic resource]").unwrap();
+        rec.marc_set("description.title.number_of_part", "Part 1").unwrap();
+        rec.marc_set("description.title.name_of_part", "Introduction").unwrap();
         let t = rec.description.title.as_ref().unwrap();
         assert_eq!(t.medium, Some("[electronic resource]".to_string()));
         assert_eq!(t.number_of_part, Some("Part 1".to_string()));
