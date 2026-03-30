@@ -75,6 +75,12 @@ fn dump_as_json(reader: MarcReader) -> Result<(), MarcError> {
             print!(",\n");
         }
         first = false;
+        if !record.valid {
+            let report = record.validation_report();
+            if !report.is_empty() {
+                eprintln!("{report}");
+            }
+        }
         let json = serde_json::to_string_pretty(record).map_err(|_| MarcError::InvalidRecord("serde error"))?;
         print!("{json}");
     }

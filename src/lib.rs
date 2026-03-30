@@ -22,6 +22,7 @@ pub use crate::format::MarcFormat;
 pub use crate::raw::{BinaryReader, BinaryWriter, RawRecord, RawRecordView};
 pub use crate::reader::MarcReader;
 pub use crate::record::Record;
+pub use crate::record::RecordValidationIssue;
 pub use crate::xml::{XmlReader, XmlWriter};
 
 /// Detected file format (binary ISO2709 vs MARC-XML).

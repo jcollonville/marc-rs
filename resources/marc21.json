@@ -198,19 +198,19 @@
       "id": "identification",
       "label": "0XX - Identification",
       "fields": [
-        { "tag": "001", "type": "control", "target": "identification.record_id", "mandatory": true },
-        { "tag": "003", "type": "control", "target": "identification.agency_id" },
-        { "tag": "005", "type": "control", "target": "identification.record_version_date" },
-        { "tag": "008", "type": "control", "length": 40, "mandatory": true, "slice": { "offset": 0, "length": 6 }, "target": "coded.date_entered_on_file", "reverse": false },
-        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 6, "length": 1 }, "target": "coded.type_of_date" },
-        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 7, "length": 4 }, "target": "coded.date1" },
-        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 11, "length": 4 }, "target": "coded.date2" },
-        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 15, "length": 3 }, "target": "coded.place_of_publication_code" },
+        { "tag": "001", "type": "control", "target": "identification.record_id", "mandatory": true, "pattern": "^\\S+$" },
+        { "tag": "003", "type": "control", "target": "identification.agency_id", "pattern": "^\\S+$" },
+        { "tag": "005", "type": "control", "target": "identification.record_version_date", "pattern": "^\\d{14}(\\.\\d+)?$" },
+        { "tag": "008", "type": "control", "length": 40, "mandatory": true, "slice": { "offset": 0, "length": 6 }, "target": "coded.date_entered_on_file", "reverse": false, "pattern": "^\\d{6}$" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 6, "length": 1 }, "target": "coded.type_of_date", "pattern": "^\\S$" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 7, "length": 4 }, "target": "coded.date1", "pattern": "^[0-9#]{4}$" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 11, "length": 4 }, "target": "coded.date2", "pattern": "^[0-9#]{4}$" },
+        { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 15, "length": 3 }, "target": "coded.place_of_publication_code", "pattern": "^[a-zA-Z0-9#]{3}$" },
         { "tag": "008", "type": "control", "length": 40, "slice": { "offset": 35, "length": 3 }, "target": "coded.languages", "rules": "languages", "reverse": false },
         {
           "tag": "010",
           "subfields": [
-            { "code": "a", "target": "identification.lccn" }
+            { "code": "a", "target": "identification.lccn", "pattern": "^[0-9nN\\s\\-/]{8,35}$" }
           ]
         },
         {
@@ -239,14 +239,14 @@
         {
           "tag": "020",
           "subfields": [
-            { "code": "a", "target": "identification.isbn.value" },
+            { "code": "a", "target": "identification.isbn.value", "pattern": "^(?:97[89][0-9-]{10,17}|[0-9-]{9,17}[0-9Xx])$" },
             { "code": "q", "target": "identification.isbn.qualifying" }
           ]
         },
         {
           "tag": "022",
           "subfields": [
-            { "code": "a", "target": "identification.issn.value" },
+            { "code": "a", "target": "identification.issn.value", "pattern": "^[0-9]{4}-[0-9]{3}[0-9Xx]$" },
             { "code": "q", "target": "identification.issn.qualifying" }
           ]
         },
@@ -266,7 +266,7 @@
         {
           "tag": "030",
           "subfields": [
-            { "code": "a", "target": "identification.codens.value" }
+            { "code": "a", "target": "identification.codens.value", "pattern": "^[A-Za-z]{6}[0-9]{2}$" }
           ]
         },
         {
@@ -427,7 +427,7 @@
           "subfields": [
             { "code": "a", "target": "description.series.title" },
             { "code": "v", "target": "description.series.volume" },
-            { "code": "x", "target": "description.series.issn" }
+            { "code": "x", "target": "description.series.issn", "pattern": "^[0-9]{4}-[0-9]{3}[0-9Xx]$" }
           ]
         }
       ]
@@ -516,7 +516,7 @@
           "tag": "080",
           "defaults": { "scheme": "udc" },
           "subfields": [
-            { "code": "a", "target": "indexing.classifications.number" }
+            { "code": "a", "target": "indexing.classifications.number", "pattern": "^[0-9]+(?:\\.[0-9]+)*(?:/[0-9.]+)?$" }
           ]
         },
         {
@@ -524,13 +524,13 @@
           "indicators": ["0", "0"],
           "defaults": { "scheme": "dewey" },
           "subfields": [
-            { "code": "a", "target": "indexing.classifications.number" }
+            { "code": "a", "target": "indexing.classifications.number", "pattern": "^[0-9]{3}(?:\\.[0-9]+)?(?:/[A-Z0-9]+)?$" }
           ]
         },
         {
           "tag": "084",
           "subfields": [
-            { "code": "a", "target": "indexing.classifications.number" },
+            { "code": "a", "target": "indexing.classifications.number", "pattern": "^[A-Z]{1,3}[0-9]{3,}(?:\\.[A-Z0-9]+)?$" },
             { "code": "2", "target": "indexing.classifications.scheme" }
           ]
         },
@@ -741,7 +741,7 @@
             { "code": "c", "target": "international.location_call_numbers.shelving_location" },
             { "code": "h", "target": "international.location_call_numbers.classification_part" },
             { "code": "j", "target": "international.location_call_numbers.call_number" },
-            { "code": "n", "target": "international.location_call_numbers.country_code" },
+            { "code": "n", "target": "international.location_call_numbers.country_code", "pattern": "^(?i)(?:[a-z]{2}|[a-z]{3}|[0-9]{3})$" },
             { "code": "p", "target": "international.location_call_numbers.piece_designation" },
             { "code": "t", "target": "international.location_call_numbers.copy_number" }
           ]
@@ -749,7 +749,7 @@
         {
           "tag": "856",
           "subfields": [
-            { "code": "u", "target": "international.electronic_locations.uri" },
+            { "code": "u", "target": "international.electronic_locations.uri", "pattern": "^https?://\\S+$" },
             { "code": "z", "target": "international.electronic_locations.public_note" }
           ]
         }
@@ -766,7 +766,7 @@
             { "code": "b", "target": "local.items.section" },
             { "code": "c", "target": "local.items.sub_library" },
             { "code": "d", "target": "local.items.section_code" },
-            { "code": "f", "target": "local.items.barcode" },
+            { "code": "f", "target": "local.items.barcode", "pattern": "^\\S+$" },
             { "code": "k", "target": "local.items.call_number" },
             { "code": "l", "target": "local.items.inventory_number" },
             { "code": "m", "target": "local.items.creation_date" },

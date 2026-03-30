@@ -20,9 +20,9 @@ pub enum PathKind {
 
 pub trait MarcPaths: Sized {
     const IS_LEAF: bool;
-    fn from_marc_str(s: &str) -> Result<Self, &'static str>;
+    fn from_marc_str(s: &str) -> Self;
     fn to_marc_str(&self) -> String;
-    fn marc_set(&mut self, path: &str, value: &str) -> Result<bool, &'static str>;
+    fn marc_set(&mut self, path: &str, value: &str) -> bool;
     fn marc_get_option(&self, path: &str) -> Option<String>;
     fn marc_get_vec(&self, path: &str) -> Option<Vec<String>>;
     fn marc_path_kind(path: &str) -> Option<PathKind>;
@@ -89,20 +89,35 @@ impl_from_rule_value_char!(RecordStatus, RecordStatus::Other);
 impl_from_rule_value_char!(RecordType, RecordType::Other);
 impl_from_rule_value_char!(BibliographicLevel, BibliographicLevel::Other);
 
+/// One catalog pattern validation failure when mapping raw MARC → [`Record`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecordValidationIssue {
+    pub tag: String,
+    pub subfield: Option<char>,
+    pub target_path: String,
+    pub value: String,
+    pub pattern: String,
+}
+
+fn default_record_valid() -> bool {
+    true
+}
+
 // ── MarcPaths leaf implementations for value enums ──────────────────────────
 
 macro_rules! impl_marc_leaf {
     ($ty:ty) => {
         impl MarcPaths for $ty {
             const IS_LEAF: bool = true;
-            fn from_marc_str(s: &str) -> Result<Self, &'static str> {
-                Ok(<$ty as FromRuleValue>::from_rule_value(s))
+            fn from_marc_str(s: &str) -> Self {
+                <$ty as FromRuleValue>::from_rule_value(s)
             }
             fn to_marc_str(&self) -> String {
                 <$ty as FromRuleValue>::to_rule_value(self)
             }
-            fn marc_set(&mut self, _: &str, _: &str) -> Result<bool, &'static str> {
-                Ok(false)
+            fn marc_set(&mut self, _: &str, _: &str) -> bool {
+                false
             }
             fn marc_get_option(&self, _: &str) -> Option<String> {
                 None
@@ -137,7 +152,7 @@ impl_marc_leaf!(Relator);
 
 /// High-level semantic representation of a MARC bibliographic record,
 /// organized following the standard block numbering (0XX-9XX).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, MarcPaths)]
+#[derive(Debug, Clone, Serialize, Deserialize, MarcPaths)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
     #[marc(skip)]
@@ -145,6 +160,14 @@ pub struct Record {
     #[marc(skip)]
     #[serde(skip)]
     pub encoding: Option<Encoding>,
+    /// False when any bound value failed a catalog `pattern` check (see `validation_issues`).
+    #[marc(skip)]
+    #[serde(default = "default_record_valid")]
+    pub valid: bool,
+    /// Details for each pattern mismatch (non-fatal: record is still returned).
+    #[marc(skip)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub validation_issues: Vec<RecordValidationIssue>,
     /// 0XX - Identification
     #[serde(default)]
     pub identification: Identification,
@@ -177,7 +200,44 @@ pub struct Record {
     pub local: Local,
 }
 
+impl Default for Record {
+    fn default() -> Self {
+        Self {
+            leader: Leader::default(),
+            encoding: None,
+            valid: true,
+            validation_issues: Vec::new(),
+            identification: Identification::default(),
+            coded: Coded::default(),
+            description: Description::default(),
+            notes: Notes::default(),
+            links: Links::default(),
+            associated_titles: AssociatedTitles::default(),
+            indexing: Indexing::default(),
+            responsibility: Responsibility::default(),
+            international: International::default(),
+            local: Local::default(),
+        }
+    }
+}
+
 impl Record {
+    /// Multi-line report of [`Self::validation_issues`] for logging or CLI output.
+    pub fn validation_report(&self) -> String {
+        if self.validation_issues.is_empty() {
+            return String::new();
+        }
+        let mut s = String::from("catalog pattern validation failed:\n");
+        for issue in &self.validation_issues {
+            let sub = issue.subfield.map(|c| format!("${}", c)).unwrap_or_else(|| "-".to_string());
+            s.push_str(&format!(
+                "  tag {} subfield {} path {} value {:?} pattern {}\n",
+                issue.tag, sub, issue.target_path, issue.value, issue.pattern
+            ));
+        }
+        s
+    }
+
     pub fn authors(&self) -> impl Iterator<Item = &Agent> {
         self.responsibility.main_entry.iter().chain(self.responsibility.added_entries.iter())
     }

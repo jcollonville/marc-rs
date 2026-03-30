@@ -1,6 +1,6 @@
 [package]
 name = "marc-rs"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Jean Collonvillé <jcollonville@b-612.fr>"]
 description = "Rust library for MARC21, UNIMARC, and MARC XML format support"
@@ -18,7 +18,8 @@ encoding_rs = "0.8"
 lazy_static = "1.4"
 unicode-normalization = "0.1"
 clap = { version = "4", features = ["derive"] }
-marc-rs-derive = { path = "marc-rs-derive", version = "1.0.0" }
+regex = "1"
+marc-rs-derive = { path = "marc-rs-derive", version = "1.0.1" }
 
 [[bin]]
 name = "marc-rs"

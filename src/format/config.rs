@@ -28,6 +28,9 @@ pub struct LeaderPositionDef {
     pub target: String,
     pub rules: Option<RulesRef>,
     pub default_raw: Option<String>,
+    /// Optional Rust regex: translated leader fragment must match before mapping.
+    #[serde(default)]
+    pub pattern: Option<String>,
 }
 
 fn default_one() -> usize {
@@ -93,6 +96,9 @@ pub struct FieldDef {
     pub subfields: Option<Vec<SubfieldBinding>>,
     pub length: Option<usize>,
     pub mandatory: Option<bool>,
+    /// Optional Rust regex for control field value (after slice/trim/translate).
+    #[serde(default)]
+    pub pattern: Option<String>,
 }
 
 /// Maps a MARC subfield (e.g. $a, $b) to a dotted path in the Record model
@@ -107,6 +113,9 @@ pub struct SubfieldBinding {
     pub rules: Option<RulesRef>,
     pub default: Option<String>,
     pub length: Option<usize>,
+    /// Optional Rust regex: translated value must match before mapping to the record path.
+    #[serde(default)]
+    pub pattern: Option<String>,
 }
 
 /// Reference to a translation table: either the name of a shared table (e.g. "languages"),
